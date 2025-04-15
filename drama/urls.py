@@ -20,7 +20,8 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/', include(('accounts.urls', 'accounts'), namespace='accounts')),  # URLs for accounts
-    path('movies/', include(('movies.urls', 'movies'), namespace='movies')),         # URLs for movie searches and details
-    path('games/', include('games.urls')),                                            # URLs for game challenges
+    path('accounts/', include('allauth.urls')), 
+    path('accounts/', include(('accounts.urls', 'accounts'), namespace='accounts')),  
+    path('movies/', include(('movies.urls', 'movies'), namespace='movies')),         
+    path('games/', include('games.urls')),                                           
 ]
