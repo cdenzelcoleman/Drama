@@ -95,6 +95,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+INSTALLED_APPS += [
+    'accounts.apps.AccountsConfig',
+    'movies.apps.MoviesConfig',
+    'games.apps.GamesConfig',
+]
+
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
