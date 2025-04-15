@@ -11,7 +11,9 @@ from pathlib import Path
 import os
 
 import environ
-environ.Env()
+
+# Initialize environment
+env = environ.Env()
 environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -26,8 +28,7 @@ SECRET_KEY = 'django-insecure-fdsy7k0an64vd+onc%7mku@_(*^n4!3$=x+q#go9r&id57$_xl
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['localhost', '0.0.0.0', '127.0.0.1']
 
 # Application definition
 
@@ -38,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Add your custom apps here, for example 'accounts', 'movies', 'games', etc.
 ]
 
 MIDDLEWARE = [
@@ -56,7 +56,7 @@ ROOT_URLCONF = 'drama.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # Add your templates directory here if needed
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -71,25 +71,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'drama.wsgi.application'
 
-
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'drama',
-        'USER': os.environ.get('DB_USER', 'default_user'),
-        'PASSWORD': os.environ.get('DB_PW', 'default_password'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': '5432',
-        }
-    }
-
+    'default': env.db(
+        'DATABASE_URL',
+        default='postgresql://localhost/drama'
+    )
+}
 
 # Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -105,27 +95,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
+# Static files
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
+# Default primary key field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
