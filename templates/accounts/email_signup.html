@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Drama - Sign Up</title>
+  <!-- Link to my CSS -->
+</head>
+<body>
+  <div class="signup-container">
+    <h1>Drama</h1>
+    <h3>Create an account</h3>
+    <p>Enter your email to sign up for this app</p>
+    <form method="POST">
+      {% csrf_token %}
+      {{ form.email }}
+      <button type="submit">Continue</button>
+    </form>
+
+    <div>
+      <!-- Or continue with Google / Apple links from django-allauth -->
+      <a href="{% provider_login_url 'google' %}">Continue with Google</a>
+      <a href="{% provider_login_url 'apple' %}">Continue with Apple</a>
+    </div>
+
+    <p>By clicking continue, you agree to our 
+      <a href="#">Terms of Service</a> and 
+      <a href="#">Privacy Policy</a>.
+    </p>
+  </div>
+</body>
+</html>
