@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Drama - Profile</title>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="container profile-page">
+    <header class="header">
+      <h1>Drama</h1>
+      <nav>
+        <a href="{% url 'logout' %}" class="btn btn-secondary">Logout</a>
+      </nav>
+    </header>
+    <main>
+      <h2>Your Profile</h2>
+      <div class="profile-details">
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        
+        <!-- Display avatar -->
+        <div class="avatar">
+          {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" alt="Profile Picture">
+          {% else %}
+            <img src="{% static 'images/default_avatar.png' %}" alt="Default Profile Picture">
+          {% endif %}
+        </div>
+        
+        <!-- Add profile details here -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>
