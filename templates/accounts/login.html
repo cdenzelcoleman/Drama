@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Drama - Login</title>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="container login-page">
+    <header class="header">
+      <h1>Drama</h1>
+    </header>
+    <main>
+      <h2>Login to your account</h2>
+      
+      <!-- Display messages if any -->
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+            <li class="message {{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      
+      <!-- Login Form -->
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+      
+      <!-- Social Logins -->
+      <div class="social-login">
+        <p>Or continue with:</p>
+        <a class="social-btn" href="{% provider_login_url 'google' %}">Google</a>
+        <a class="social-btn" href="{% provider_login_url 'apple' %}">Apple</a>
+      </div>
+      
+      <!-- Link to Registration -->
+      <p class="text-center">
+        Don't have an account? <a href="{% url 'email_signup' %}">Sign up</a>
+      </p>
+    </main>
+  </div>
+</body>
+</html>
