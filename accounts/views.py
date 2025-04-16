@@ -17,3 +17,9 @@ def email_signup_view(request):
     else:
         form = EmailSignUpForm()
     return render(request, 'accounts/email_signup.html', {'form': form})
+
+def password_setup_view(request):
+    email = request.session.get('signup_email')
+    if not email:
+        return redirect('email_signup') 
+    # Process password creation form here...
