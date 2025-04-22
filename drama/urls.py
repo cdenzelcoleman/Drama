@@ -22,6 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')), 
     path('accounts/', include(('accounts.urls', 'accounts'), namespace='accounts')),  
-    path('movies/', include(('movies.urls', 'movies'), namespace='movies')),         
+    path('movies/', include('movies.urls')),         
     path('games/', include('games.urls')),                                           
 ]
