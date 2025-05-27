@@ -7,4 +7,7 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('register/', views.email_signup_view, name='email_signup'),
     path('register/password/', views.password_setup_view, name='password_setup'),
+    path('friends/add/<int:user_id>/', views.add_friend, name='add_friend'),
+    path('friends/accept/<int:friendship_id>/', views.accept_friend, name='accept_friend'),
+    path('friends/search/', views.search_users, name='search_users'),
 ]

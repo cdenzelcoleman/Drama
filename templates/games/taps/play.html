@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}Play {{ game.name }} - Taps Game{% endblock %}
+
+{% block extra_css %}
+<style>
+.tap-area {
+    height: 400px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s;
+    margin: 20px 0;
+}
+
+.tap-area:active {
+    transform: scale(0.98);
+}
+
+.tap-area.disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.game-info {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.score-display {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.timer-display {
+    font-size: 2rem;
+    color: #dc3545;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h1 class="text-center">{{ game.name }}</h1>
+        
+        <div class="game-info">
+            <div class="row">
+                <div class="col-6">
+                    <div class="score-display" id="score">0</div>
+                    <div>Taps</div>
+                </div>
+                <div class="col-6">
+                    <div class="timer-display" id="timer">10</div>
+                    <div>Seconds</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tap-area" id="tapArea">
+            <div class="text-center text-white">
+                <h2>Click to Start!</h2>
+                <p>Tap as fast as you can for 10 seconds</p>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <button id="startBtn" class="btn btn-success btn-lg">Start Game</button>
+            <button id="resetBtn" class="btn btn-secondary" style="display: none;">Play Again</button>
+        </div>
+        
+        <div id="results" class="alert alert-success text-center" style="display: none;">
+            <h3>Game Complete!</h3>
+            <p>Your score: <span id="finalScore"></span> taps</p>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{% url 'games:taps_detail' game.id %}" class="btn btn-secondary">← Back to Game</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let gameActive = false;
+let score = 0;
+let timeLeft = 10;
+let timer;
+let taps = [];
+
+const scoreElement = document.getElementById('score');
+const timerElement = document.getElementById('timer');
+const tapArea = document.getElementById('tapArea');
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
+const results = document.getElementById('results');
+const finalScore = document.getElementById('finalScore');
+
+function startGame() {
+    gameActive = true;
+    score = 0;
+    timeLeft = 10;
+    taps = [];
+    
+    scoreElement.textContent = score;
+    timerElement.textContent = timeLeft;
+    
+    startBtn.style.display = 'none';
+    resetBtn.style.display = 'none';
+    results.style.display = 'none';
+    
+    tapArea.innerHTML = '<div class="text-center text-white"><h2>TAP NOW!</h2></div>';
+    tapArea.classList.remove('disabled');
+    
+    timer = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+            endGame();
+        }
+    }, 1000);
+}
+
+function endGame() {
+    gameActive = false;
+    clearInterval(timer);
+    
+    tapArea.innerHTML = '<div class="text-center text-white"><h2>Time\'s Up!</h2></div>';
+    tapArea.classList.add('disabled');
+    
+    finalScore.textContent = score;
+    results.style.display = 'block';
+    resetBtn.style.display = 'inline-block';
+    
+    // Submit score to server
+    submitScore();
+}
+
+function submitScore() {
+    fetch('', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            score: score,
+            taps: taps
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Score submitted successfully');
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting score:', error);
+    });
+}
+
+function resetGame() {
+    gameActive = false;
+    score = 0;
+    timeLeft = 10;
+    
+    scoreElement.textContent = score;
+    timerElement.textContent = timeLeft;
+    
+    tapArea.innerHTML = '<div class="text-center text-white"><h2>Click to Start!</h2><p>Tap as fast as you can for 10 seconds</p></div>';
+    tapArea.classList.remove('disabled');
+    
+    startBtn.style.display = 'inline-block';
+    resetBtn.style.display = 'none';
+    results.style.display = 'none';
+}
+
+tapArea.addEventListener('click', (e) => {
+    if (!gameActive) {
+        if (startBtn.style.display !== 'none') {
+            startGame();
+        }
+        return;
+    }
+    
+    score++;
+    scoreElement.textContent = score;
+    taps.push({
+        timestamp: Date.now(),
+        x: e.clientX,
+        y: e.clientY
+    });
+    
+    // Visual feedback
+    tapArea.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+    setTimeout(() => {
+        tapArea.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    }, 100);
+});
+
+startBtn.addEventListener('click', startGame);
+resetBtn.addEventListener('click', resetGame);
+</script>
+{% csrf_token %}
+{% endblock %}

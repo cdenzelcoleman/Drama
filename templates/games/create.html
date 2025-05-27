@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Game - Drama{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h2>Create New Game</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Game Name</label>
+                        <input type="text" class="form-control" name="name" id="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="game_type" class="form-label">Game Type</label>
+                        <select class="form-select" name="game_type" id="game_type" required>
+                            <option value="">Select a game type</option>
+                            <option value="taps">Taps Game</option>
+                            <option value="shake">Shake Game</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description (optional)</label>
+                        <textarea class="form-control" name="description" id="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Create Game</button>
+                        <a href="{% url 'games:index' %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

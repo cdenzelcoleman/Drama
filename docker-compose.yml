@@ -1,16 +1,15 @@
-# docker-compose.yml
 services:
   web:
     build: .
-    command: gunicorn drama.wsgi:application --bind 0.0.0.0:8000
-    volumes:
-      - .:/app
     ports:
       - "8000:8000"
-    env_file:
-      - .env
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
     environment:
-      SECRET_KEY:    "${SECRET_KEY}"
-      DEBUG:         "${DEBUG}"
-      ALLOWED_HOSTS: "${ALLOWED_HOSTS}"
-      DATABASE_URL:  "${DATABASE_URL}"
+      - DEBUG=1
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+
+volumes:
+  static_volume:

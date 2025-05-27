@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Shake Games - Drama{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>📱 Shake Games</h1>
+        <p class="lead">Shake your mobile device as fast as you can!</p>
+        
+        {% if user.is_authenticated %}
+            <div class="mb-4">
+                <a href="{% url 'games:create' %}" class="btn btn-primary">Create New Shake Game</a>
+            </div>
+        {% endif %}
+
+        {% if games %}
+            <div class="row">
+                {% for game in games %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ game.name }}</h5>
+                                <p class="card-text">{{ game.description }}</p>
+                                <small class="text-muted">Created by {{ game.created_by.username }}</small>
+                                <div class="mt-2">
+                                    <a href="{% url 'games:shake_detail' game.id %}" class="btn btn-warning btn-sm">Join Game</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <h4>No Shake games available</h4>
+                <p>Create the first Shake game!</p>
+            </div>
+        {% endif %}
+        
+        <div class="mt-4">
+            <a href="{% url 'games:index' %}" class="btn btn-secondary">← Back to Games</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

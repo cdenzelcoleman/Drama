@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ movie.title }} - Drama{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        {% if movie.poster_url %}
+            <img src="{{ movie.poster_url }}" class="img-fluid rounded" alt="{{ movie.title }}">
+        {% else %}
+            <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 600px;">
+                <span class="text-muted">No Poster Available</span>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-8">
+        <h1>{{ movie.title }}</h1>
+        {% if movie.release_date %}
+            <p class="text-muted">Released: {{ movie.release_date|date:"F d, Y" }}</p>
+        {% endif %}
+        
+        <div class="mb-3">
+            <span class="badge bg-primary">⭐ {{ movie.vote_average }}/10</span>
+            <span class="badge bg-secondary">{{ movie.vote_count }} votes</span>
+        </div>
+        
+        <h3>Overview</h3>
+        <p>{{ movie.overview|default:"No overview available." }}</p>
+        
+        {% if user.is_authenticated %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h4>Your Rating</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="rating" class="form-label">Rating (1-5 stars)</label>
+                            <select class="form-select" name="rating" id="rating">
+                                <option value="">Select a rating</option>
+                                {% for i in "12345" %}
+                                    <option value="{{ i }}" {% if user_rating.rating == i|add:0 %}selected{% endif %}>
+                                        {{ i }} star{{ i|add:0|pluralize }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="review" class="form-label">Review (optional)</label>
+                            <textarea class="form-control" name="review" id="review" rows="3">{{ user_rating.review|default:"" }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Rating</button>
+                    </form>
+                    
+                    {% if user_rating %}
+                        <div class="mt-3">
+                            <strong>Your current rating:</strong> {{ user_rating.rating }}/5 stars
+                            {% if user_rating.review %}
+                                <p class="mt-2"><strong>Your review:</strong> {{ user_rating.review }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-info mt-4">
+                <a href="{% url 'accounts:login' %}">Login</a> to rate this movie and add it to your lists.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <a href="{% url 'movies:index' %}" class="btn btn-secondary">← Back to Movies</a>
+    </div>
+</div>
+{% endblock %}

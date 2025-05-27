@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Movies - Drama{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Discover Movies</h1>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="q" placeholder="Search movies..." value="{{ query }}">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" name="genre">
+                            <option value="">All Genres</option>
+                            <option value="28" {% if genre == "28" %}selected{% endif %}>Action</option>
+                            <option value="35" {% if genre == "35" %}selected{% endif %}>Comedy</option>
+                            <option value="18" {% if genre == "18" %}selected{% endif %}>Drama</option>
+                            <option value="27" {% if genre == "27" %}selected{% endif %}>Horror</option>
+                            <option value="878" {% if genre == "878" %}selected{% endif %}>Sci-Fi</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control" name="year" placeholder="Year" value="{{ year }}" min="1900" max="2024">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            {% for movie in movies %}
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100">
+                        {% if movie.poster_url %}
+                            <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }}" style="height: 400px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 400px;">
+                                <span class="text-muted">No Poster</span>
+                            </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ movie.title }}</h5>
+                            <p class="card-text text-muted small">{{ movie.release_date|date:"Y" }}</p>
+                            <p class="card-text flex-grow-1">{{ movie.overview|truncatewords:20 }}</p>
+                            <div class="mt-auto">
+                                <small class="text-muted">⭐ {{ movie.vote_average }}/10</small>
+                                <a href="{% url 'movies:detail' movie.id %}" class="btn btn-primary btn-sm float-end">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        No movies found. Try a different search or browse popular movies.
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if genre %}genre={{ genre }}&{% endif %}{% if year %}year={{ year }}&{% endif %}page={{ page|add:'-1' }}">Previous</a>
+                    </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">Page {{ page }}</span>
+                </li>
+                {% if has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if genre %}genre={{ genre }}&{% endif %}{% if year %}year={{ year }}&{% endif %}page={{ page|add:'1' }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
