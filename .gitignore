@@ -116,3 +116,5 @@ dmypy.json
 
 # Claude Code
 CLAUDE.md
+.gitignore
+.env

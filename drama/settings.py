@@ -42,6 +42,9 @@ INSTALLED_APPS = [
 
 SITE_ID = 1
 
+TMDB_API_KEY = env("TMDB_API_KEY")
+
+
 # ─── MIDDLEWARE ─────────────────────────────────────────────────────
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
