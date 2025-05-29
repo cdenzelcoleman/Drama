@@ -5,7 +5,7 @@
 {% block extra_css %}
 <style>
 .shake-area {
-    height: 400px;
+    height: 200px;
     background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
     border-radius: 15px;
     display: flex;
@@ -53,13 +53,111 @@
     padding: 15px;
     margin: 20px 0;
 }
+
+.race-track {
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    height: 200px;
+    position: relative;
+}
+
+.race-lane {
+    position: relative;
+    height: 80px;
+    margin: 10px 0;
+    background: linear-gradient(90deg, #e9ecef 0%, #28a745 100%);
+    border-radius: 40px;
+    border: 2px solid #6c757d;
+    overflow: hidden;
+}
+
+.race-lane.player1 {
+    border-color: #007bff;
+}
+
+.race-lane.player2 {
+    border-color: #dc3545;
+}
+
+.race-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+    border-radius: 40px;
+    transition: width 0.2s ease;
+    width: 0%;
+    position: relative;
+}
+
+.race-lane.player2 .race-progress {
+    background: linear-gradient(90deg, #dc3545 0%, #c82333 100%);
+}
+
+.avatar {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 60px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.finish-line {
+    position: absolute;
+    right: 10px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: repeating-linear-gradient(
+        45deg,
+        #000,
+        #000 10px,
+        #fff 10px,
+        #fff 20px
+    );
+}
+
+.player-label {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+
+.multiplayer-info {
+    text-align: center;
+    margin: 10px 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <h1 class="text-center">{{ game.name }}</h1>
+        <h1 class="text-center">Shake Game</h1>
+        <h2 class="text-center text-muted">{{ game.movie.title }}</h2>
+        
+        {% if existing_result %}
+            <div class="alert alert-info">
+                You already played this game! Your previous score: <strong>{{ existing_result.score }}</strong>
+                <br>You can play again to try to beat your score.
+            </div>
+        {% endif %}
         
         <div id="deviceWarning" class="device-warning text-center">
             <h5>📱 Mobile Device Required</h5>
@@ -79,6 +177,25 @@
             </div>
         </div>
         
+        <div class="race-track">
+            <div class="finish-line"></div>
+            <div class="race-lane player1">
+                <div class="player-label">You</div>
+                <div class="race-progress" id="player1Progress">
+                    <div class="avatar">🏃</div>
+                </div>
+            </div>
+            <div class="race-lane player2">
+                <div class="player-label">CPU</div>
+                <div class="race-progress" id="player2Progress">
+                    <div class="avatar">🤖</div>
+                </div>
+            </div>
+            <div class="multiplayer-info">
+                First to reach the finish line wins!
+            </div>
+        </div>
+
         <div class="shake-area" id="shakeArea">
             <div class="text-center text-white">
                 <h2>Ready to Shake!</h2>
@@ -97,7 +214,8 @@
         </div>
         
         <div class="text-center mt-4">
-            <a href="{% url 'games:shake_detail' game.id %}" class="btn btn-secondary">← Back to Game</a>
+            <a href="{% url 'movies:room_detail' game.room.id %}" class="btn btn-secondary">← Back to Room</a>
+            <a href="{% url 'movies:game_results' game.id %}" class="btn btn-info">View Results</a>
         </div>
     </div>
 </div>
@@ -112,6 +230,9 @@ let timer;
 let shakes = [];
 let lastShake = 0;
 let shakeThreshold = 15;
+let cpuScore = 0;
+let raceDistance = 100; // Distance to finish line
+let gameWon = false;
 
 const scoreElement = document.getElementById('score');
 const timerElement = document.getElementById('timer');
@@ -120,12 +241,16 @@ const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const results = document.getElementById('results');
 const finalScore = document.getElementById('finalScore');
+const player1Progress = document.getElementById('player1Progress');
+const player2Progress = document.getElementById('player2Progress');
 
 function startGame() {
     gameActive = true;
     score = 0;
+    cpuScore = 0;
     timeLeft = 10;
     shakes = [];
+    gameWon = false;
     
     scoreElement.textContent = score;
     timerElement.textContent = timeLeft;
@@ -134,6 +259,10 @@ function startGame() {
     resetBtn.style.display = 'none';
     results.style.display = 'none';
     
+    // Reset race progress
+    player1Progress.style.width = '0%';
+    player2Progress.style.width = '0%';
+    
     shakeArea.innerHTML = '<div class="text-center text-white"><h2>SHAKE NOW!</h2></div>';
     shakeArea.classList.remove('disabled');
     
@@ -141,18 +270,54 @@ function startGame() {
         timeLeft--;
         timerElement.textContent = timeLeft;
         
-        if (timeLeft <= 0) {
+        // CPU AI - gradually increases difficulty
+        if (Math.random() < 0.3 + (10 - timeLeft) * 0.05) {
+            cpuScore++;
+            updateRaceProgress();
+        }
+        
+        if (timeLeft <= 0 || gameWon) {
             endGame();
         }
     }, 1000);
+}
+
+function updateRaceProgress() {
+    // Update player progress (1 shake = ~3% progress)
+    const playerProgress = Math.min((score / raceDistance) * 100, 100);
+    const cpuProgress = Math.min((cpuScore / raceDistance) * 100, 100);
+    
+    player1Progress.style.width = playerProgress + '%';
+    player2Progress.style.width = cpuProgress + '%';
+    
+    // Check for winner
+    if (playerProgress >= 100 && !gameWon) {
+        gameWon = true;
+        results.innerHTML = '<h3>🏆 You Win!</h3><p>You reached the finish line first!</p>';
+        endGame();
+    } else if (cpuProgress >= 100 && !gameWon) {
+        gameWon = true;
+        results.innerHTML = '<h3>😔 CPU Wins!</h3><p>The CPU reached the finish line first!</p>';
+        endGame();
+    }
 }
 
 function endGame() {
     gameActive = false;
     clearInterval(timer);
     
-    shakeArea.innerHTML = '<div class="text-center text-white"><h2>Time\'s Up!</h2></div>';
+    shakeArea.innerHTML = '<div class="text-center text-white"><h2>Game Over!</h2></div>';
     shakeArea.classList.add('disabled');
+    
+    if (!gameWon) {
+        if (score > cpuScore) {
+            results.innerHTML = '<h3>🏆 You Win!</h3><p>You had more shakes when time ran out!</p>';
+        } else if (cpuScore > score) {
+            results.innerHTML = '<h3>😔 CPU Wins!</h3><p>CPU had more shakes when time ran out!</p>';
+        } else {
+            results.innerHTML = '<h3>🤝 It\'s a Tie!</h3><p>Both players had the same score!</p>';
+        }
+    }
     
     finalScore.textContent = score;
     results.style.display = 'block';
@@ -163,15 +328,14 @@ function endGame() {
 }
 
 function submitScore() {
-    fetch('', {
+    fetch('{% url "movies:submit_game_result" game.id %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
         },
         body: JSON.stringify({
-            score: score,
-            shakes: shakes
+            score: score
         })
     })
     .then(response => response.json())
@@ -188,10 +352,16 @@ function submitScore() {
 function resetGame() {
     gameActive = false;
     score = 0;
+    cpuScore = 0;
     timeLeft = 10;
+    gameWon = false;
     
     scoreElement.textContent = score;
     timerElement.textContent = timeLeft;
+    
+    // Reset race progress
+    player1Progress.style.width = '0%';
+    player2Progress.style.width = '0%';
     
     shakeArea.innerHTML = '<div class="text-center text-white"><h2>Ready to Shake!</h2><p>Shake your device or tap rapidly</p></div>';
     shakeArea.classList.remove('disabled');
@@ -202,7 +372,7 @@ function resetGame() {
 }
 
 function recordShake() {
-    if (!gameActive) return;
+    if (!gameActive || gameWon) return;
     
     const now = Date.now();
     if (now - lastShake > 100) { // Prevent spam
@@ -214,6 +384,9 @@ function recordShake() {
             timestamp: now,
             type: 'shake'
         });
+        
+        // Update race progress
+        updateRaceProgress();
         
         // Visual feedback
         shakeArea.classList.add('shaking');

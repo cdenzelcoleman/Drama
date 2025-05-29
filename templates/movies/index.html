@@ -27,9 +27,14 @@
                         <input type="number" class="form-control" name="year" placeholder="Year" value="{{ year }}" min="1900" max="2024">
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary">Search</button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
                     </div>
                 </form>
+                <div class="mt-2 text-center">
+                    <a href="?random=1" class="btn btn-outline-success btn-sm">🎲 Random Movies</a>
+                </div>
             </div>
         </div>
 
@@ -50,7 +55,19 @@
                             <p class="card-text flex-grow-1">{{ movie.overview|truncatewords:20 }}</p>
                             <div class="mt-auto">
                                 <small class="text-muted">⭐ {{ movie.vote_average }}/10</small>
-                                <a href="{% url 'movies:detail' movie.id %}" class="btn btn-primary btn-sm float-end">View Details</a>
+                                <div class="btn-group float-end" role="group">
+                                    <a href="{% url 'movies:detail' movie.id %}" class="btn btn-primary btn-sm">View Details</a>
+                                    {% if user.is_authenticated %}
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Add to Room
+                                            </button>
+                                            <ul class="dropdown-menu" id="room-dropdown-{{ movie.id }}">
+                                                <li><a class="dropdown-item" href="#" onclick="loadUserRooms({{ movie.id }})">Loading rooms...</a></li>
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -84,4 +101,59 @@
         </nav>
     </div>
 </div>
+
+{% csrf_token %}
+<script>
+let userRooms = null;
+
+async function loadUserRooms(movieId) {
+    if (userRooms === null) {
+        try {
+            const response = await fetch('/movies/api/user-rooms/');
+            userRooms = await response.json();
+        } catch (error) {
+            console.error('Error loading rooms:', error);
+            userRooms = [];
+        }
+    }
+    
+    const dropdown = document.getElementById(`room-dropdown-${movieId}`);
+    dropdown.innerHTML = '';
+    
+    if (userRooms.length === 0) {
+        dropdown.innerHTML = '<li><a class="dropdown-item" href="{% url "movies:room_create" %}">Create a Room</a></li>';
+    } else {
+        userRooms.forEach(room => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a class="dropdown-item" href="#" onclick="addMovieToRoom('${room.id}', ${movieId}, '${room.name}')">${room.name}</a>`;
+            dropdown.appendChild(li);
+        });
+        dropdown.innerHTML += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item" href="{% url "movies:room_create" %}">Create New Room</a></li>';
+    }
+}
+
+async function addMovieToRoom(roomId, movieId, roomName) {
+    try {
+        const response = await fetch(`/movies/rooms/${roomId}/add-movie/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ movie_id: movieId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`Movie added to ${roomName} successfully!`);
+        } else {
+            alert('Error adding movie to room: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error adding movie to room');
+    }
+}
+</script>
 {% endblock %}

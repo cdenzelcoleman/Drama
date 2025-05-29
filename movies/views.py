@@ -8,8 +8,11 @@ from django.views.decorators.http import require_http_methods
 import requests
 import json
 from django.conf import settings
-from .models import Movie, MovieList, MovieRating
+from .models import Movie, MovieList, MovieRating, Room, RoomMembership, Game, GameResult
 from datetime import datetime
+from django.utils import timezone
+from django.contrib.auth.models import User
+from django.db.models import Q
 
 TMDB_API_KEY = settings.TMDB_API_KEY
 TMDB_BASE_URL = 'https://api.themoviedb.org/3'
@@ -56,16 +59,41 @@ def get_popular_movies(page=1):
         return response.json()
     return None
 
+def get_random_movies(page=1):
+    import random
+    # Get a random page from 1-500 to get diverse results
+    random_page = random.randint(1, 100)
+    
+    url = f"{TMDB_BASE_URL}/discover/movie"
+    params = {
+        'api_key': TMDB_API_KEY,
+        'page': random_page,
+        'sort_by': 'popularity.desc',
+        'vote_count.gte': 100  # Ensure movies have enough votes
+    }
+    
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        # Shuffle the results for more randomness
+        if 'results' in data:
+            random.shuffle(data['results'])
+        return data
+    return None
+
 def index(request):
     query = request.GET.get('q', '')
     genre = request.GET.get('genre', '')
     year = request.GET.get('year', '')
+    random_search = request.GET.get('random', '')
     page = int(request.GET.get('page', 1))
     
     movies_data = None
     
     if query:
         movies_data = search_movies_tmdb(query, page)
+    elif random_search:
+        movies_data = get_random_movies(page)
     else:
         movies_data = get_popular_movies(page)
     
@@ -104,6 +132,7 @@ def index(request):
         'query': query,
         'genre': genre,
         'year': year,
+        'random_search': random_search,
         'page': page,
         'has_next': movies_data.get('page', 1) < movies_data.get('total_pages', 1) if movies_data else False,
         'has_previous': page > 1
@@ -246,3 +275,223 @@ def api_rate_movie(request, movie_id):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+# Room Views
+@login_required
+def rooms_index(request):
+    user_rooms = Room.objects.filter(
+        Q(owner=request.user) | Q(members=request.user)
+    ).distinct().order_by('-updated_at')
+    
+    context = {
+        'rooms': user_rooms
+    }
+    return render(request, 'movies/rooms/index.html', context)
+
+@login_required
+def room_create(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        emails = request.POST.get('emails', '').split(',')
+        
+        if name:
+            room = Room.objects.create(name=name, owner=request.user)
+            
+            # Add owner as member
+            RoomMembership.objects.create(
+                room=room, 
+                user=request.user, 
+                status='accepted'
+            )
+            
+            # Send invites
+            for email in emails:
+                email = email.strip()
+                if email:
+                    try:
+                        user = User.objects.get(email=email)
+                        RoomMembership.objects.get_or_create(
+                            room=room, 
+                            user=user,
+                            defaults={'status': 'pending'}
+                        )
+                    except User.DoesNotExist:
+                        messages.warning(request, f"User with email {email} not found")
+            
+            messages.success(request, f"Room '{name}' created successfully!")
+            return redirect('room_detail', room_id=room.id)
+    
+    return render(request, 'movies/rooms/create.html')
+
+@login_required
+def room_detail(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    
+    # Check if user is member or owner
+    if not (room.owner == request.user or room.members.filter(id=request.user.id).exists()):
+        messages.error(request, "You don't have access to this room")
+        return redirect('rooms_index')
+    
+    memberships = RoomMembership.objects.filter(room=room).select_related('user')
+    games = Game.objects.filter(room=room).select_related('movie', 'created_by').order_by('-created_at')
+    
+    context = {
+        'room': room,
+        'memberships': memberships,
+        'games': games,
+        'is_owner': room.owner == request.user
+    }
+    return render(request, 'movies/rooms/detail.html', context)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def add_movie_to_room(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    
+    # Check if user is member
+    if not (room.owner == request.user or room.members.filter(id=request.user.id).exists()):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        movie_id = data.get('movie_id')
+        movie = get_object_or_404(Movie, id=movie_id)
+        
+        room.selected_movies.add(movie)
+        return JsonResponse({'success': True, 'message': f'{movie.title} added to room'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def respond_to_invitation(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    membership = get_object_or_404(RoomMembership, room=room, user=request.user)
+    
+    if request.method == 'POST':
+        response = request.POST.get('response')
+        if response in ['accepted', 'declined']:
+            membership.status = response
+            membership.responded_at = timezone.now()
+            membership.save()
+            
+            if response == 'accepted':
+                messages.success(request, f"You joined the room '{room.name}'!")
+                return redirect('room_detail', room_id=room.id)
+            else:
+                messages.info(request, f"You declined the invitation to '{room.name}'")
+                return redirect('rooms_index')
+    
+    context = {'room': room, 'membership': membership}
+    return render(request, 'movies/rooms/invitation.html', context)
+
+# Game Views  
+@login_required
+def create_game(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    
+    # Check if user is member
+    if not (room.owner == request.user or room.members.filter(id=request.user.id).exists()):
+        messages.error(request, "You don't have access to this room")
+        return redirect('rooms_index')
+    
+    if request.method == 'POST':
+        movie_id = request.POST.get('movie_id')
+        game_type = request.POST.get('game_type')
+        
+        if movie_id and game_type in ['taps', 'shake']:
+            movie = get_object_or_404(Movie, id=movie_id)
+            game = Game.objects.create(
+                room=room,
+                movie=movie,
+                game_type=game_type,
+                created_by=request.user
+            )
+            
+            messages.success(request, f"{game.get_game_type_display()} game created for {movie.title}!")
+            return redirect('play_game', game_id=game.id)
+    
+    context = {
+        'room': room,
+        'movies': room.selected_movies.all()
+    }
+    return render(request, 'movies/games/create.html', context)
+
+@login_required
+def play_game(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    
+    # Check if user is member of the room
+    if not (game.room.owner == request.user or game.room.members.filter(id=request.user.id).exists()):
+        messages.error(request, "You don't have access to this game")
+        return redirect('rooms_index')
+    
+    # Check if user already played
+    existing_result = GameResult.objects.filter(game=game, player=request.user).first()
+    
+    context = {
+        'game': game,
+        'existing_result': existing_result
+    }
+    
+    if game.game_type == 'taps':
+        return render(request, 'games/taps/play.html', context)
+    elif game.game_type == 'shake':
+        return render(request, 'games/shake/play.html', context)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def submit_game_result(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    
+    # Check if user is member of the room
+    if not (game.room.owner == request.user or game.room.members.filter(id=request.user.id).exists()):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        score = int(data.get('score', 0))
+        
+        result, created = GameResult.objects.update_or_create(
+            game=game,
+            player=request.user,
+            defaults={'score': score}
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'score': result.score,
+            'created': created
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def game_results(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    
+    # Check if user is member of the room
+    if not (game.room.owner == request.user or game.room.members.filter(id=request.user.id).exists()):
+        messages.error(request, "You don't have access to this game")
+        return redirect('rooms_index')
+    
+    results = GameResult.objects.filter(game=game).select_related('player').order_by('-score')
+    
+    context = {
+        'game': game,
+        'results': results,
+        'winner': results.first() if results else None
+    }
+    return render(request, 'movies/games/results.html', context)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_user_rooms(request):
+    """API endpoint to get user's rooms"""
+    user_rooms = Room.objects.filter(
+        Q(owner=request.user) | Q(members=request.user)
+    ).distinct().values('id', 'name')
+    
+    return JsonResponse(list(user_rooms), safe=False)

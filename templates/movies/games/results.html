@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Game Results - {{ game.movie.title }} - Drama{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h1>{{ game.get_game_type_display }} Results</h1>
+        <h2>{{ game.movie.title }}</h2>
+        
+        <div class="card">
+            <div class="card-body">
+                {% if winner %}
+                    <div class="alert alert-success text-center mb-4">
+                        <h3>🏆 Winner: {{ winner.player.username }}</h3>
+                        <h4>Score: {{ winner.score }}</h4>
+                    </div>
+                {% endif %}
+
+                <h5>All Results</h5>
+                {% if results %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Player</th>
+                                    <th>Score</th>
+                                    <th>Completed At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in results %}
+                                    <tr {% if forloop.first %}class="table-warning"{% endif %}>
+                                        <td>
+                                            {% if forloop.first %}
+                                                🥇 1st
+                                            {% elif forloop.counter == 2 %}
+                                                🥈 2nd
+                                            {% elif forloop.counter == 3 %}
+                                                🥉 3rd
+                                            {% else %}
+                                                {{ forloop.counter }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ result.player.username }}</td>
+                                        <td><strong>{{ result.score }}</strong></td>
+                                        <td>{{ result.completed_at|date:"M d, Y H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        No one has played this game yet.
+                    </div>
+                {% endif %}
+
+                <div class="mt-4">
+                    <a href="{% url 'movies:play_game' game.id %}" class="btn btn-primary">Play Game</a>
+                    <a href="{% url 'movies:room_detail' game.room.id %}" class="btn btn-secondary">Back to Room</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

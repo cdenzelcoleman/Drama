@@ -47,7 +47,15 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <h1 class="text-center">{{ game.name }}</h1>
+        <h1 class="text-center">Taps Game</h1>
+        <h2 class="text-center text-muted">{{ game.movie.title }}</h2>
+        
+        {% if existing_result %}
+            <div class="alert alert-info">
+                You already played this game! Your previous score: <strong>{{ existing_result.score }}</strong>
+                <br>You can play again to try to beat your score.
+            </div>
+        {% endif %}
         
         <div class="game-info">
             <div class="row">
@@ -80,7 +88,8 @@
         </div>
         
         <div class="text-center mt-4">
-            <a href="{% url 'games:taps_detail' game.id %}" class="btn btn-secondary">← Back to Game</a>
+            <a href="{% url 'movies:room_detail' game.room.id %}" class="btn btn-secondary">← Back to Room</a>
+            <a href="{% url 'movies:game_results' game.id %}" class="btn btn-info">View Results</a>
         </div>
     </div>
 </div>
@@ -144,15 +153,14 @@ function endGame() {
 }
 
 function submitScore() {
-    fetch('', {
+    fetch('{% url "movies:submit_game_result" game.id %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
         },
         body: JSON.stringify({
-            score: score,
-            taps: taps
+            score: score
         })
     })
     .then(response => response.json())
