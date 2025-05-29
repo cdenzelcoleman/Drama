@@ -14,6 +14,37 @@
         <div class="messenger-badge">2</div>
     </div>
 </div>
+
+<!-- Featured Movies Banner -->
+{% if featured_movies and page == 1 %}
+<div class="movie-banner">
+    <div class="banner-container" id="bannerContainer">
+        {% for movie in featured_movies %}
+            <div class="banner-slide">
+                {% if movie.backdrop_url %}
+                    <img src="{{ movie.backdrop_url }}" class="banner-poster" alt="{{ movie.title }}" loading="lazy">
+                {% endif %}
+                <div class="banner-content">
+                    <h2 class="banner-title">{{ movie.title }}</h2>
+                    <p class="banner-subtitle">{{ movie.overview|truncatewords:10 }}</p>
+                    <div class="banner-rating">
+                        <span>⭐ {{ movie.vote_average|floatformat:1 }}</span>
+                        <span>•</span>
+                        <span>{{ movie.release_date|date:"Y" }}</span>
+                    </div>
+                    <a href="{% url 'movies:detail' movie.id %}" class="banner-cta">View Details</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="banner-dots" id="bannerDots">
+        {% for movie in featured_movies %}
+            <div class="banner-dot {% if forloop.first %}active{% endif %}" onclick="goToSlide({{ forloop.counter0 }})"></div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="mb-4">
     <div class="text-center mb-3 mt-3">
         <h1 class="game-title" style="font-size: 1.5rem;">🍿 Discover Movies</h1>
@@ -222,6 +253,145 @@ document.addEventListener('DOMContentLoaded', function() {
 function openMessenger() {
     // For now, just show an alert - in real app would open messaging interface
     alert('Messages feature coming soon! 💬');
+}
+
+// Banner functionality
+let currentSlide = 0;
+let totalSlides = 0;
+let bannerInterval;
+let startX = 0;
+let currentX = 0;
+let isDragging = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const banner = document.getElementById('bannerContainer');
+    const dots = document.getElementById('bannerDots');
+    
+    if (!banner) return;
+    
+    totalSlides = banner.children.length;
+    
+    if (totalSlides > 1) {
+        // Auto-scroll every 4 seconds
+        startAutoScroll();
+        
+        // Touch/swipe events
+        banner.addEventListener('touchstart', handleTouchStart, { passive: true });
+        banner.addEventListener('touchmove', handleTouchMove, { passive: true });
+        banner.addEventListener('touchend', handleTouchEnd, { passive: true });
+        
+        // Mouse events for desktop testing
+        banner.addEventListener('mousedown', handleMouseStart);
+        banner.addEventListener('mousemove', handleMouseMove);
+        banner.addEventListener('mouseup', handleMouseEnd);
+        banner.addEventListener('mouseleave', handleMouseEnd);
+        
+        // Pause auto-scroll on hover/touch
+        banner.addEventListener('mouseenter', stopAutoScroll);
+        banner.addEventListener('mouseleave', startAutoScroll);
+        banner.addEventListener('touchstart', stopAutoScroll);
+        banner.addEventListener('touchend', () => {
+            setTimeout(startAutoScroll, 3000); // Resume after 3s
+        });
+    }
+});
+
+function handleTouchStart(e) {
+    startX = e.touches[0].clientX;
+    isDragging = true;
+}
+
+function handleTouchMove(e) {
+    if (!isDragging) return;
+    currentX = e.touches[0].clientX;
+}
+
+function handleTouchEnd(e) {
+    if (!isDragging) return;
+    
+    const diffX = startX - currentX;
+    const threshold = 50; // Minimum swipe distance
+    
+    if (Math.abs(diffX) > threshold) {
+        if (diffX > 0) {
+            nextSlide();
+        } else {
+            prevSlide();
+        }
+    }
+    
+    isDragging = false;
+}
+
+function handleMouseStart(e) {
+    startX = e.clientX;
+    isDragging = true;
+    e.preventDefault();
+}
+
+function handleMouseMove(e) {
+    if (!isDragging) return;
+    currentX = e.clientX;
+    e.preventDefault();
+}
+
+function handleMouseEnd(e) {
+    if (!isDragging) return;
+    
+    const diffX = startX - currentX;
+    const threshold = 50;
+    
+    if (Math.abs(diffX) > threshold) {
+        if (diffX > 0) {
+            nextSlide();
+        } else {
+            prevSlide();
+        }
+    }
+    
+    isDragging = false;
+}
+
+function goToSlide(index) {
+    currentSlide = index;
+    updateBanner();
+}
+
+function nextSlide() {
+    currentSlide = (currentSlide + 1) % totalSlides;
+    updateBanner();
+}
+
+function prevSlide() {
+    currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+    updateBanner();
+}
+
+function updateBanner() {
+    const banner = document.getElementById('bannerContainer');
+    const dots = document.querySelectorAll('.banner-dot');
+    
+    if (banner) {
+        banner.style.transform = `translateX(-${currentSlide * 100}%)`;
+    }
+    
+    // Update dots
+    dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === currentSlide);
+    });
+}
+
+function startAutoScroll() {
+    if (totalSlides > 1) {
+        bannerInterval = setInterval(nextSlide, 4000);
+    }
+}
+
+function stopAutoScroll() {
+    if (bannerInterval) {
+        clearInterval(bannerInterval);
+        bannerInterval = null;
+    }
 }
 </script>
 {% endblock %}

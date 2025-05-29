@@ -89,6 +89,93 @@ def index(request):
     page = int(request.GET.get('page', 1))
     
     movies_data = None
+    featured_movies = []
+    
+    # Get featured movies for banner (movies a year or more older)
+    if page == 1:  # Only show banner on first page
+        try:
+            from datetime import date
+            current_year = date.today().year
+            max_year = current_year - 1  # Only movies from previous year or earlier
+            
+            featured_data = get_popular_movies(1)
+            if featured_data and 'results' in featured_data:
+                # Filter and get movies that are a year or more older
+                for movie_data in featured_data['results']:
+                    # Check if movie has release date and is old enough
+                    if movie_data.get('release_date'):
+                        try:
+                            release_date = datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date()
+                            if release_date.year <= max_year:
+                                movie, created = Movie.objects.get_or_create(
+                                    tmdb_id=movie_data['id'],
+                                    defaults={
+                                        'title': movie_data.get('title', ''),
+                                        'overview': movie_data.get('overview', ''),
+                                        'poster_path': movie_data.get('poster_path', ''),
+                                        'backdrop_path': movie_data.get('backdrop_path', ''),
+                                        'release_date': release_date,
+                                        'vote_average': movie_data.get('vote_average', 0.0),
+                                        'vote_count': movie_data.get('vote_count', 0),
+                                        'genre_ids': movie_data.get('genre_ids', [])
+                                    }
+                                )
+                                featured_movies.append(movie)
+                                
+                                # Stop when we have 5 movies
+                                if len(featured_movies) >= 5:
+                                    break
+                        except Exception as e:
+                            print(f"Error processing movie date for {movie_data.get('title', 'Unknown')}: {e}")
+                            continue
+            
+            # If we don't have enough older movies from popular, try discover with year filter
+            if len(featured_movies) < 5:
+                try:
+                    # Use TMDB discover endpoint to get older movies
+                    url = f"{TMDB_BASE_URL}/discover/movie"
+                    params = {
+                        'api_key': TMDB_API_KEY,
+                        'primary_release_date.lte': f'{max_year}-12-31',
+                        'vote_average.gte': 7.0,  # Get well-rated older movies
+                        'vote_count.gte': 100,    # Ensure enough votes
+                        'sort_by': 'popularity.desc'
+                    }
+                    
+                    import requests
+                    response = requests.get(url, params=params)
+                    if response.status_code == 200:
+                        older_movies_data = response.json()
+                        
+                        for movie_data in older_movies_data.get('results', []):
+                            if len(featured_movies) >= 5:
+                                break
+                                
+                            if movie_data.get('release_date'):
+                                try:
+                                    release_date = datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date()
+                                    movie, created = Movie.objects.get_or_create(
+                                        tmdb_id=movie_data['id'],
+                                        defaults={
+                                            'title': movie_data.get('title', ''),
+                                            'overview': movie_data.get('overview', ''),
+                                            'poster_path': movie_data.get('poster_path', ''),
+                                            'backdrop_path': movie_data.get('backdrop_path', ''),
+                                            'release_date': release_date,
+                                            'vote_average': movie_data.get('vote_average', 0.0),
+                                            'vote_count': movie_data.get('vote_count', 0),
+                                            'genre_ids': movie_data.get('genre_ids', [])
+                                        }
+                                    )
+                                    featured_movies.append(movie)
+                                except Exception as e:
+                                    print(f"Error creating older movie {movie_data.get('title', 'Unknown')}: {e}")
+                                    continue
+                except Exception as e:
+                    print(f"Error getting older movies: {e}")
+                    
+        except Exception as e:
+            print(f"Error getting featured movies: {e}")
     
     if query:
         movies_data = search_movies_tmdb(query, page)
@@ -129,6 +216,7 @@ def index(request):
     
     context = {
         'movies': movies,
+        'featured_movies': featured_movies,
         'query': query,
         'genre': genre,
         'year': year,
