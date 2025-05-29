@@ -495,3 +495,94 @@ def api_user_rooms(request):
     ).distinct().values('id', 'name')
     
     return JsonResponse(list(user_rooms), safe=False)
+
+# Favorites Views
+@login_required
+def favorites(request):
+    """User's favorite movies"""
+    # For now, get user's highest rated movies as favorites
+    favorite_ratings = MovieRating.objects.filter(
+        user=request.user, 
+        rating__gte=4
+    ).select_related('movie').order_by('-rating', '-created_at')
+    
+    context = {
+        'favorite_movies': [rating.movie for rating in favorite_ratings]
+    }
+    return render(request, 'movies/favorites.html', context)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def toggle_favorite(request, movie_id):
+    """Toggle favorite status for a movie"""
+    movie = get_object_or_404(Movie, id=movie_id)
+    rating, created = MovieRating.objects.get_or_create(
+        user=request.user,
+        movie=movie,
+        defaults={'rating': 5, 'review': ''}
+    )
+    
+    if not created:
+        if rating.rating >= 4:
+            # Remove from favorites
+            rating.rating = 3
+        else:
+            # Add to favorites
+            rating.rating = 5
+        rating.save()
+    
+    return JsonResponse({
+        'is_favorite': rating.rating >= 4,
+        'rating': rating.rating
+    })
+
+# Notifications Views
+@login_required
+def notifications(request):
+    """User notifications"""
+    # Sample notifications - in real app, these would come from database
+    notifications = [
+        {
+            'id': 1,
+            'type': 'friend_request',
+            'icon': '👋',
+            'title': 'New friend request',
+            'message': 'John Doe sent you a friend request',
+            'time': '2 hours ago',
+            'unread': True
+        },
+        {
+            'id': 2,
+            'type': 'game_invite',
+            'icon': '🎮',
+            'title': 'Game invitation',
+            'message': 'Sarah invited you to play Taps Game',
+            'time': '4 hours ago',
+            'unread': True
+        },
+        {
+            'id': 3,
+            'type': 'room_invite',
+            'icon': '🏠',
+            'title': 'Room invitation',
+            'message': 'Mike added you to "Horror Movie Night"',
+            'time': '1 day ago',
+            'unread': False
+        },
+        {
+            'id': 4,
+            'type': 'movie_comment',
+            'icon': '💬',
+            'title': 'New comment',
+            'message': 'Alex commented on "The Matrix"',
+            'time': '2 days ago',
+            'unread': False
+        }
+    ]
+    
+    context = {
+        'notifications': notifications,
+        'unread_count': sum(1 for n in notifications if n['unread'])
+    }
+    return render(request, 'movies/notifications.html', context)

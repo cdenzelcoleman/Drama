@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}My Favorites - Drama{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h1 class="game-title">❤️ My Favorites</h1>
+    <p class="game-subtitle">Your favorite movies collection</p>
+</div>
+
+{% if favorite_movies %}
+    <div class="favorite-grid">
+        {% for movie in favorite_movies %}
+            <div class="favorite-movie">
+                {% if movie.poster_url %}
+                    <img src="{{ movie.poster_url }}" class="favorite-poster" alt="{{ movie.title }}" loading="lazy">
+                {% else %}
+                    <div class="favorite-poster bg-gray-700 flex items-center justify-center">
+                        <span class="text-4xl">🎬</span>
+                    </div>
+                {% endif %}
+                <div class="favorite-overlay">
+                    <h3 class="favorite-title">{{ movie.title }}</h3>
+                    <p class="favorite-rating">{{ movie.release_date|date:"Y" }} • ⭐ {{ movie.vote_average|floatformat:1 }}</p>
+                </div>
+                <a href="{% url 'movies:detail' movie.id %}" class="absolute inset-0"></a>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-12">
+        <div class="text-6xl mb-4">💔</div>
+        <h3 class="text-xl font-semibold mb-2">No favorites yet</h3>
+        <p class="text-gray-400 mb-6">Start rating movies to build your favorites collection!</p>
+        <a href="{% url 'movies:index' %}" class="btn btn-primary">
+            🍿 Discover Movies
+        </a>
+    </div>
+{% endif %}
+
+<!-- Quick Stats -->
+<div class="card mt-6">
+    <div class="card-body">
+        <h3 class="text-lg font-semibold mb-4">📊 Your Stats</h3>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="text-center p-4 bg-gray-700 rounded-lg">
+                <div class="text-2xl font-bold text-red-400">{{ favorite_movies|length }}</div>
+                <div class="text-sm text-gray-400">Favorite Movies</div>
+            </div>
+            <div class="text-center p-4 bg-gray-700 rounded-lg">
+                <div class="text-2xl font-bold text-blue-400">5</div>
+                <div class="text-sm text-gray-400">Rooms Joined</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

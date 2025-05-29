@@ -1,38 +1,177 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Drama - Profile</title>
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-  <div class="container profile-page">
-    <header class="header">
-      <h1>Drama</h1>
-      <nav>
-        <a href="{% url 'logout' %}" class="btn btn-secondary">Logout</a>
-      </nav>
-    </header>
-    <main>
-      <h2>Your Profile</h2>
-      <div class="profile-details">
-        <p><strong>Username:</strong> {{ user.username }}</p>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-        
-        <!-- Display avatar -->
-        <div class="avatar">
-          {% if user.avatar %}
-            <img src="{{ user.avatar.url }}" alt="Profile Picture">
-          {% else %}
-            <img src="{% static 'images/default_avatar.png' %}" alt="Default Profile Picture">
-          {% endif %}
+{% extends "base.html" %}
+
+{% block title %}Profile - Drama{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="profile-avatar">
+            👤
         </div>
-        
-        <!-- Add profile details here -->
-      </div>
-    </main>
-  </div>
-</body>
-</html>
+        <h1 class="profile-name">{{ user.first_name|default:user.username }}</h1>
+        <p class="profile-email">{{ user.email }}</p>
+    </div>
+    
+    <!-- Profile Stats -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-2xl font-bold text-primary-color">5</h3>
+                <p class="text-sm text-gray-400">Rooms Joined</p>
+            </div>
+        </div>
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-2xl font-bold text-secondary-color">12</h3>
+                <p class="text-sm text-gray-400">Games Played</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="card mb-6">
+        <div class="card-body">
+            <h3 class="text-lg font-semibold mb-4">🎬 Recent Activity</h3>
+            <div class="space-y-3">
+                <div class="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
+                    <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        🏆
+                    </div>
+                    <div>
+                        <p class="font-medium">Won a Shake Game!</p>
+                        <p class="text-sm text-gray-400">2 hours ago</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-content">
+                        🏠
+                    </div>
+                    <div>
+                        <p class="font-medium">Joined "Movie Night" room</p>
+                        <p class="text-sm text-gray-400">1 day ago</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
+                    <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                        🎮
+                    </div>
+                    <div>
+                        <p class="font-medium">Played Taps Game</p>
+                        <p class="text-sm text-gray-400">3 days ago</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Profile Settings -->
+    <div class="card mb-6">
+        <div class="card-body">
+            <h3 class="text-lg font-semibold mb-4">⚙️ Settings</h3>
+            <div class="profile-settings">
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <span class="setting-icon">🔔</span>
+                        <span>Push Notifications</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <span class="setting-icon">🌙</span>
+                        <span>Dark Mode</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <span class="setting-icon">🔒</span>
+                        <span>Private Profile</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <span class="setting-icon">📧</span>
+                        <span>Email Updates</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-2 gap-4">
+        <a href="{% url 'movies:rooms_index' %}" class="btn btn-primary">
+            🏠 My Rooms
+        </a>
+        <a href="{% url 'movies:favorites' %}" class="btn btn-secondary">
+            ❤️ My Favorites
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Toggle switch styles */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #64748b;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #6366f1;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+</style>
+{% endblock %}

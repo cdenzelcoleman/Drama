@@ -45,10 +45,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h1 class="text-center">Taps Game</h1>
-        <h2 class="text-center text-muted">{{ game.movie.title }}</h2>
+<div class="game-container">
+    <div class="game-header">
+        <h1 class="game-title">🖱️ Quick Taps</h1>
+        <p class="game-subtitle">{{ game.movie.title }}</p>
+    </div>
         
         {% if existing_result %}
             <div class="alert alert-info">
@@ -87,10 +88,13 @@
             <p>Your score: <span id="finalScore"></span> taps</p>
         </div>
         
-        <div class="text-center mt-4">
-            <a href="{% url 'movies:room_detail' game.room.id %}" class="btn btn-secondary">← Back to Room</a>
-            <a href="{% url 'movies:game_results' game.id %}" class="btn btn-info">View Results</a>
-        </div>
+    <div class="flex gap-2 justify-center mt-4">
+        <a href="{% url 'movies:room_detail' game.room.id %}" class="btn btn-secondary">
+            ← Back to Room
+        </a>
+        <a href="{% url 'movies:game_results' game.id %}" class="btn btn-success">
+            📊 View Results
+        </a>
     </div>
 </div>
 {% endblock %}

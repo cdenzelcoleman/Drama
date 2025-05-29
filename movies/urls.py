@@ -19,9 +19,14 @@ urlpatterns = [
     path('games/<uuid:game_id>/submit/', views.submit_game_result, name='submit_game_result'),
     path('games/<uuid:game_id>/results/', views.game_results, name='game_results'),
     
+    # Favorites and Notifications
+    path('favorites/', views.favorites, name='favorites'),
+    path('notifications/', views.notifications, name='notifications'),
+    
     # API endpoints
     path('api/movies/', views.api_movies_list, name='api_movies_list'),
     path('api/movies/<int:movie_id>/', views.api_movie_detail, name='api_movie_detail'),
     path('api/movies/<int:movie_id>/rate/', views.api_rate_movie, name='api_rate_movie'),
+    path('api/movies/<int:movie_id>/toggle-favorite/', views.toggle_favorite, name='toggle_favorite'),
     path('api/user-rooms/', views.api_user_rooms, name='api_user_rooms'),
 ]

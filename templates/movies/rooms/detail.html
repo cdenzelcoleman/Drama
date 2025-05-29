@@ -3,121 +3,147 @@
 {% block title %}{{ room.name }} - Drama{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>{{ room.name }}</h1>
-            <div>
-                {% if is_owner %}
-                    <a href="{% url 'movies:create_game' room.id %}" class="btn btn-success">Create Game</a>
-                {% endif %}
-                <a href="{% url 'movies:rooms_index' %}" class="btn btn-secondary">Back to Rooms</a>
-            </div>
+<!-- Room Header -->
+<div class="room-card mb-4">
+    <div class="room-header">
+        <div>
+            <h1 class="room-title">🏠 {{ room.name }}</h1>
+            <p class="room-owner">Hosted by {{ room.owner.username }}</p>
         </div>
-
-        <div class="row">
-            <!-- Members -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Members</h5>
-                    </div>
-                    <div class="card-body">
-                        {% for membership in memberships %}
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>
-                                    {{ membership.user.username }}
-                                    {% if membership.user == room.owner %}
-                                        <small class="badge bg-primary">Owner</small>
-                                    {% endif %}
-                                </span>
-                                <small class="badge bg-{% if membership.status == 'accepted' %}success{% elif membership.status == 'pending' %}warning{% else %}danger{% endif %}">
-                                    {{ membership.get_status_display }}
-                                </small>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Selected Movies -->
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Selected Movies ({{ room.selected_movies.count }})</h5>
-                    </div>
-                    <div class="card-body">
-                        {% if room.selected_movies.all %}
-                            <div class="row">
-                                {% for movie in room.selected_movies.all %}
-                                    <div class="col-md-6 mb-3">
-                                        <div class="card h-100">
-                                            <div class="row g-0">
-                                                <div class="col-4">
-                                                    {% if movie.poster_url %}
-                                                        <img src="{{ movie.poster_url }}" class="img-fluid rounded-start h-100" alt="{{ movie.title }}" style="object-fit: cover;">
-                                                    {% else %}
-                                                        <div class="bg-light h-100 d-flex align-items-center justify-content-center">
-                                                            <small class="text-muted">No Poster</small>
-                                                        </div>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="col-8">
-                                                    <div class="card-body p-2">
-                                                        <h6 class="card-title">{{ movie.title }}</h6>
-                                                        <p class="card-text"><small class="text-muted">{{ movie.release_date|date:"Y" }}</small></p>
-                                                        <p class="card-text"><small>⭐ {{ movie.vote_average }}/10</small></p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="text-center py-4">
-                                <p class="text-muted">No movies selected yet.</p>
-                                <a href="{% url 'movies:index' %}" class="btn btn-primary">Browse Movies</a>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Games -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5>Games</h5>
-                    </div>
-                    <div class="card-body">
-                        {% if games %}
-                            {% for game in games %}
-                                <div class="card mb-3">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6>{{ game.get_game_type_display }} - {{ game.movie.title }}</h6>
-                                                <small class="text-muted">Created by {{ game.created_by.username }} on {{ game.created_at|date:"M d, Y" }}</small>
-                                            </div>
-                                            <div>
-                                                <a href="{% url 'movies:play_game' game.id %}" class="btn btn-primary btn-sm">Play</a>
-                                                <a href="{% url 'movies:game_results' game.id %}" class="btn btn-info btn-sm">Results</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="text-center py-4">
-                                <p class="text-muted">No games created yet.</p>
-                                {% if is_owner %}
-                                    <a href="{% url 'movies:create_game' room.id %}" class="btn btn-success">Create First Game</a>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+        <div class="flex gap-2">
+            {% if is_owner %}
+                <a href="{% url 'movies:create_game' room.id %}" class="btn btn-success btn-sm">
+                    🎮 New Game
+                </a>
+            {% endif %}
         </div>
     </div>
+    <div class="room-stats">
+        <div class="room-stat">
+            <span>👥</span>
+            <span>{{ memberships.count }} members</span>
+        </div>
+        <div class="room-stat">
+            <span>🍿</span>
+            <span>{{ room.selected_movies.count }} movies</span>
+        </div>
+        <div class="room-stat">
+            <span>🎮</span>
+            <span>{{ games.count }} games</span>
+        </div>
+    </div>
+</div>
+
+<!-- Members Card -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h3 class="text-lg font-semibold mb-4">👥 Members</h3>
+        <div class="grid gap-3">
+            {% for membership in memberships %}
+                <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                            👤
+                        </div>
+                        <div>
+                            <p class="font-medium">{{ membership.user.username }}</p>
+                            {% if membership.user == room.owner %}
+                                <span class="inline-block px-2 py-1 text-xs bg-blue-600 text-white rounded-full">👑 Owner</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="inline-block px-2 py-1 text-xs rounded-full 
+                        {% if membership.status == 'accepted' %}bg-green-600 text-white
+                        {% elif membership.status == 'pending' %}bg-yellow-600 text-white
+                        {% else %}bg-red-600 text-white{% endif %}">
+                        {{ membership.get_status_display }}
+                    </span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Selected Movies -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h3 class="text-lg font-semibold mb-4">🍿 Selected Movies ({{ room.selected_movies.count }})</h3>
+        {% if room.selected_movies.all %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for movie in room.selected_movies.all %}
+                    <div class="movie-card">
+                        {% if movie.poster_url %}
+                            <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}" loading="lazy">
+                        {% else %}
+                            <div class="movie-poster bg-gray-700 flex items-center justify-center">
+                                <span class="text-6xl">🎬</span>
+                            </div>
+                        {% endif %}
+                        <div class="movie-overlay">
+                            <h4 class="movie-title">{{ movie.title }}</h4>
+                            <p class="movie-year">{{ movie.release_date|date:"Y" }} • ⭐ {{ movie.vote_average|floatformat:1 }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <div class="text-6xl mb-4">🎬</div>
+                <h3 class="text-xl font-semibold mb-2">No movies selected yet</h3>
+                <p class="text-gray-400 mb-4">Add some movies to get started!</p>
+                <a href="{% url 'movies:index' %}" class="btn btn-primary">🍿 Browse Movies</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Games -->
+<div class="card">
+    <div class="card-body">
+        <h3 class="text-lg font-semibold mb-4">🎮 Games</h3>
+        {% if games %}
+            <div class="grid gap-3">
+                {% for game in games %}
+                    <div class="p-4 bg-gray-700 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-semibold">
+                                    {% if game.game_type == 'taps' %}🖱️{% else %}📳{% endif %}
+                                    {{ game.get_game_type_display }} - {{ game.movie.title }}
+                                </h4>
+                                <p class="text-sm text-gray-400">
+                                    Created by {{ game.created_by.username }} • {{ game.created_at|date:"M d, Y" }}
+                                </p>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="{% url 'movies:play_game' game.id %}" class="btn btn-primary btn-sm">
+                                    🎮 Play
+                                </a>
+                                <a href="{% url 'movies:game_results' game.id %}" class="btn btn-secondary btn-sm">
+                                    📊 Results
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <div class="text-6xl mb-4">🎮</div>
+                <h3 class="text-xl font-semibold mb-2">No games yet</h3>
+                <p class="text-gray-400 mb-4">Start your first game!</p>
+                {% if is_owner %}
+                    <a href="{% url 'movies:create_game' room.id %}" class="btn btn-success">🎯 Create First Game</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Back Button -->
+<div class="text-center mt-6">
+    <a href="{% url 'movies:rooms_index' %}" class="btn btn-secondary">
+        ← Back to Rooms
+    </a>
 </div>
 {% endblock %}
