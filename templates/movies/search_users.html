@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Friends - Drama{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h1 class="game-title">🔍 Find Friends</h1>
+    <p class="game-subtitle">Search for movie buddies by username</p>
+</div>
+
+<!-- Search Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="mb-3">
+            <div class="flex gap-2">
+                <input type="text" name="q" class="form-control" placeholder="Search by username..." value="{{ query }}" required>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+        <p class="text-sm text-gray-400">Enter at least 2 characters to search for users</p>
+    </div>
+</div>
+
+<!-- Search Results -->
+{% if query %}
+    <div class="card">
+        <div class="card-body">
+            <h3 class="text-lg font-semibold mb-4">
+                {% if users %}
+                    Search Results for "{{ query }}" ({{ users|length }})
+                {% else %}
+                    No users found for "{{ query }}"
+                {% endif %}
+            </h3>
+            
+            {% if users %}
+                <div class="grid gap-3">
+                    {% for user in users %}
+                        <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                    👤
+                                </div>
+                                <div>
+                                    <p class="font-medium">{{ user.username }}</p>
+                                    <p class="text-sm text-gray-400">
+                                        {% if user.first_name or user.last_name %}
+                                            {{ user.first_name }} {{ user.last_name }}
+                                        {% else %}
+                                            Drama user since {{ user.date_joined|date:"M Y" }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                {% if user.is_friend %}
+                                    <span class="inline-block px-3 py-1 text-sm bg-green-600 text-white rounded-full">
+                                        ✅ Friends
+                                    </span>
+                                {% elif user.has_pending_request %}
+                                    <span class="inline-block px-3 py-1 text-sm bg-yellow-600 text-white rounded-full">
+                                        ⏳ Request Sent
+                                    </span>
+                                {% elif user.has_received_request %}
+                                    <span class="inline-block px-3 py-1 text-sm bg-blue-600 text-white rounded-full">
+                                        📬 Check Requests
+                                    </span>
+                                {% else %}
+                                    <button onclick="sendFriendRequest({{ user.id }}, '{{ user.username }}')" 
+                                            class="btn btn-primary btn-sm" id="btn-{{ user.id }}">
+                                        👋 Add Friend
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <div class="text-6xl mb-4">🔍</div>
+                    <h3 class="text-xl font-semibold mb-2">No users found</h3>
+                    <p class="text-gray-400 mb-4">Try searching for a different username</p>
+                    <input type="text" class="form-control mb-3" placeholder="Try another search..." id="quickSearch">
+                    <button onclick="quickSearch()" class="btn btn-primary">Search Again</button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <div class="text-center py-8">
+                <div class="text-6xl mb-4">👥</div>
+                <h3 class="text-xl font-semibold mb-2">Search for Friends</h3>
+                <p class="text-gray-400 mb-4">Enter a username above to find and connect with other Drama users</p>
+                <a href="{% url 'movies:friends_list' %}" class="btn btn-secondary">← Back to Friends</a>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function sendFriendRequest(userId, username) {
+    // Show custom message prompt
+    const message = prompt(`Send a friend request to ${username}?\n\nOptional message:`);
+    if (message === null) return; // User cancelled
+    
+    const button = document.getElementById(`btn-${userId}`);
+    button.disabled = true;
+    button.textContent = 'Sending...';
+    
+    try {
+        const response = await fetch(`/movies/api/friends/request/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ message: message })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.status === 'friends') {
+                button.textContent = '✅ Friends';
+                button.className = 'btn btn-success btn-sm';
+            } else {
+                button.textContent = '⏳ Sent';
+                button.className = 'btn btn-secondary btn-sm';
+            }
+            alert(data.message);
+        } else {
+            button.disabled = false;
+            button.textContent = '👋 Add Friend';
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        button.disabled = false;
+        button.textContent = '👋 Add Friend';
+        alert('Error sending friend request');
+    }
+}
+
+function quickSearch() {
+    const query = document.getElementById('quickSearch').value.trim();
+    if (query.length >= 2) {
+        window.location.href = `{% url 'movies:search_users' %}?q=${encodeURIComponent(query)}`;
+    } else {
+        alert('Please enter at least 2 characters');
+    }
+}
+
+// Enter key support for quick search
+document.getElementById('quickSearch')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        quickSearch();
+    }
+});
+</script>
+{% csrf_token %}
+{% endblock %}

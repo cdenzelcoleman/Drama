@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 import requests
 import json
 from django.conf import settings
-from .models import Movie, MovieList, MovieRating, Room, RoomMembership, Game, GameResult
+from .models import Movie, MovieList, MovieRating, Room, RoomMembership, Game, GameResult, Friendship, FriendRequest
 from datetime import datetime
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -629,17 +629,28 @@ def toggle_favorite(request, movie_id):
 @login_required
 def notifications(request):
     """User notifications"""
-    # Sample notifications - in real app, these would come from database
-    notifications = [
-        {
-            'id': 1,
+    notifications = []
+    
+    # Real friend requests
+    friend_requests = FriendRequest.objects.filter(
+        to_user=request.user,
+        status='pending'
+    ).select_related('from_user').order_by('-created_at')
+    
+    for req in friend_requests:
+        notifications.append({
+            'id': f'friend_request_{req.id}',
             'type': 'friend_request',
             'icon': '👋',
             'title': 'New friend request',
-            'message': 'John Doe sent you a friend request',
-            'time': '2 hours ago',
-            'unread': True
-        },
+            'message': f'{req.from_user.username} sent you a friend request',
+            'time': f'{req.created_at.strftime("%b %d")}',
+            'unread': True,
+            'request_id': req.id
+        })
+    
+    # Sample notifications for other features
+    sample_notifications = [
         {
             'id': 2,
             'type': 'game_invite',
@@ -669,8 +680,186 @@ def notifications(request):
         }
     ]
     
+    # Add sample notifications if no real friend requests
+    if not friend_requests:
+        notifications.extend(sample_notifications)
+    
     context = {
         'notifications': notifications,
-        'unread_count': sum(1 for n in notifications if n['unread'])
+        'unread_count': len(friend_requests) + sum(1 for n in sample_notifications if n.get('unread', False))
     }
     return render(request, 'movies/notifications.html', context)
+
+# Friend Request Views
+@login_required
+def friends_list(request):
+    """Display user's friends and friend requests"""
+    friends = Friendship.get_friends(request.user)
+    pending_requests = FriendRequest.objects.filter(
+        to_user=request.user, 
+        status='pending'
+    ).select_related('from_user').order_by('-created_at')
+    sent_requests = FriendRequest.objects.filter(
+        from_user=request.user, 
+        status='pending'
+    ).select_related('to_user').order_by('-created_at')
+    
+    context = {
+        'friends': friends,
+        'pending_requests': pending_requests,
+        'sent_requests': sent_requests,
+    }
+    return render(request, 'movies/friends.html', context)
+
+@login_required
+def search_users(request):
+    """Search for users by username"""
+    query = request.GET.get('q', '').strip()
+    users = []
+    
+    if query and len(query) >= 2:
+        # Search for users by username
+        users = User.objects.filter(
+            username__icontains=query
+        ).exclude(
+            id=request.user.id  # Exclude current user
+        )[:10]  # Limit results
+        
+        # Add friendship status to each user
+        for user in users:
+            user.is_friend = Friendship.are_friends(request.user, user)
+            user.has_pending_request = FriendRequest.objects.filter(
+                from_user=request.user,
+                to_user=user,
+                status='pending'
+            ).exists()
+            user.has_received_request = FriendRequest.objects.filter(
+                from_user=user,
+                to_user=request.user,
+                status='pending'
+            ).exists()
+    
+    context = {
+        'users': users,
+        'query': query,
+    }
+    return render(request, 'movies/search_users.html', context)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_friend_request(request, user_id):
+    """Send a friend request to another user"""
+    try:
+        to_user = get_object_or_404(User, id=user_id)
+        
+        # Check if they're already friends
+        if Friendship.are_friends(request.user, to_user):
+            return JsonResponse({'error': 'You are already friends with this user'}, status=400)
+        
+        # Check if request already exists
+        existing_request = FriendRequest.objects.filter(
+            from_user=request.user,
+            to_user=to_user,
+            status='pending'
+        ).first()
+        
+        if existing_request:
+            return JsonResponse({'error': 'Friend request already sent'}, status=400)
+        
+        # Check if reverse request exists
+        reverse_request = FriendRequest.objects.filter(
+            from_user=to_user,
+            to_user=request.user,
+            status='pending'
+        ).first()
+        
+        if reverse_request:
+            # Auto-accept if they also want to be friends
+            reverse_request.accept()
+            return JsonResponse({
+                'success': True,
+                'message': f'You are now friends with {to_user.username}!',
+                'status': 'friends'
+            })
+        
+        # Get message from request
+        data = json.loads(request.body) if request.body else {}
+        message = data.get('message', '')
+        
+        # Create friend request
+        FriendRequest.objects.create(
+            from_user=request.user,
+            to_user=to_user,
+            message=message
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Friend request sent to {to_user.username}',
+            'status': 'pending'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def respond_friend_request(request, request_id):
+    """Accept or decline a friend request"""
+    try:
+        friend_request = get_object_or_404(
+            FriendRequest, 
+            id=request_id, 
+            to_user=request.user,
+            status='pending'
+        )
+        
+        data = json.loads(request.body)
+        action = data.get('action')
+        
+        if action == 'accept':
+            success = friend_request.accept()
+            if success:
+                return JsonResponse({
+                    'success': True,
+                    'message': f'You are now friends with {friend_request.from_user.username}!'
+                })
+        elif action == 'decline':
+            success = friend_request.decline()
+            if success:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Friend request declined'
+                })
+        
+        return JsonResponse({'error': 'Invalid action'}, status=400)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def remove_friend(request, user_id):
+    """Remove a friend"""
+    try:
+        friend = get_object_or_404(User, id=user_id)
+        
+        # Find and delete the friendship
+        friendship = Friendship.objects.filter(
+            Q(user1=request.user, user2=friend) | Q(user1=friend, user2=request.user)
+        ).first()
+        
+        if friendship:
+            friendship.delete()
+            return JsonResponse({
+                'success': True,
+                'message': f'Removed {friend.username} from friends'
+            })
+        else:
+            return JsonResponse({'error': 'Not friends with this user'}, status=400)
+            
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

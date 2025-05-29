@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Friends - Drama{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h1 class="game-title">👥 Friends</h1>
+    <p class="game-subtitle">Connect with your movie buddies</p>
+</div>
+
+<!-- Search for Friends -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h3 class="text-lg font-semibold mb-3">🔍 Find Friends</h3>
+        <form method="GET" action="{% url 'movies:search_users' %}" class="mb-3">
+            <div class="flex gap-2">
+                <input type="text" name="q" class="form-control" placeholder="Search by username..." required>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+        <p class="text-sm text-gray-400">Search for friends by their username to send friend requests</p>
+    </div>
+</div>
+
+<!-- Pending Friend Requests -->
+{% if pending_requests %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h3 class="text-lg font-semibold mb-4">📬 Friend Requests</h3>
+        <div class="grid gap-3">
+            {% for request in pending_requests %}
+                <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                            👤
+                        </div>
+                        <div>
+                            <p class="font-medium">{{ request.from_user.username }}</p>
+                            {% if request.message %}
+                                <p class="text-sm text-gray-400">"{{ request.message }}"</p>
+                            {% endif %}
+                            <p class="text-xs text-gray-500">{{ request.created_at|timesince }} ago</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="respondToRequest({{ request.id }}, 'accept')" 
+                                class="btn btn-success btn-sm">
+                            ✅ Accept
+                        </button>
+                        <button onclick="respondToRequest({{ request.id }}, 'decline')" 
+                                class="btn btn-secondary btn-sm">
+                            ❌ Decline
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sent Requests -->
+{% if sent_requests %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h3 class="text-lg font-semibold mb-4">📤 Sent Requests</h3>
+        <div class="grid gap-3">
+            {% for request in sent_requests %}
+                <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                            👤
+                        </div>
+                        <div>
+                            <p class="font-medium">{{ request.to_user.username }}</p>
+                            <p class="text-xs text-gray-500">Sent {{ request.created_at|timesince }} ago</p>
+                        </div>
+                    </div>
+                    <span class="text-sm text-yellow-400">⏳ Pending</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Friends List -->
+<div class="card">
+    <div class="card-body">
+        <h3 class="text-lg font-semibold mb-4">🤝 My Friends ({{ friends|length }})</h3>
+        {% if friends %}
+            <div class="grid gap-3">
+                {% for friend in friends %}
+                    <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                                👤
+                            </div>
+                            <div>
+                                <p class="font-medium">{{ friend.username }}</p>
+                                <p class="text-sm text-gray-400">Friends since {{ friend.date_joined|date:"M Y" }}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="challengeFriend('{{ friend.username }}')" 
+                                    class="btn btn-primary btn-sm">
+                                🎮 Challenge
+                            </button>
+                            <button onclick="removeFriend({{ friend.id }}, '{{ friend.username }}')" 
+                                    class="btn btn-secondary btn-sm">
+                                🚫 Remove
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <div class="text-6xl mb-4">👥</div>
+                <h3 class="text-xl font-semibold mb-2">No friends yet</h3>
+                <p class="text-gray-400 mb-4">Start building your movie buddy network!</p>
+                <a href="{% url 'movies:search_users' %}" class="btn btn-primary">🔍 Find Friends</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function respondToRequest(requestId, action) {
+    try {
+        const response = await fetch(`/movies/api/friends/respond/${requestId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ action: action })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing friend request');
+    }
+}
+
+async function removeFriend(userId, username) {
+    if (!confirm(`Are you sure you want to remove ${username} from your friends?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/movies/api/friends/remove/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error removing friend');
+    }
+}
+
+function challengeFriend(username) {
+    // For now, just show an alert - in real app would create game challenge
+    alert(`Challenge ${username} to a movie game! This feature is coming soon! 🎬🎮`);
+}
+</script>
+{% csrf_token %}
+{% endblock %}

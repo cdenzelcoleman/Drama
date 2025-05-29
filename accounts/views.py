@@ -4,8 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db import models
-from django.utils import timezone
-from .models import UserProfile, Friendship
+from .models import UserProfile
+from movies.models import Friendship, FriendRequest
 from .forms import EmailSignUpForm, PasswordSetupForm
 
 def login_view(request):
@@ -26,16 +26,15 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
     
-    friends = Friendship.objects.filter(
-        models.Q(from_user=request.user, accepted=True) |
-        models.Q(to_user=request.user, accepted=True)
-    )
+    # Get actual friends using the Friendship model
+    friends = Friendship.get_friends(request.user)
     
-    pending_requests = Friendship.objects.filter(
+    # Get pending friend requests sent to this user
+    pending_requests = FriendRequest.objects.filter(
         to_user=request.user,
-        accepted=False
+        status='pending'
     )
     
     return render(request, "accounts/profile.html", {
@@ -84,26 +83,48 @@ def add_friend(request, user_id):
         messages.error(request, "You cannot add yourself as a friend.")
         return redirect('accounts:profile')
     
-    friendship, created = Friendship.objects.get_or_create(
+    # Check if already friends
+    if Friendship.are_friends(request.user, to_user):
+        messages.info(request, f"You are already friends with {to_user.username}")
+        return redirect('accounts:profile')
+    
+    # Create or get existing friend request
+    friend_request, created = FriendRequest.objects.get_or_create(
         from_user=request.user,
-        to_user=to_user
+        to_user=to_user,
+        defaults={'status': 'pending'}
     )
     
     if created:
         messages.success(request, f"Friend request sent to {to_user.username}")
     else:
-        messages.info(request, "Friend request already sent")
+        if friend_request.status == 'pending':
+            messages.info(request, "Friend request already sent")
+        elif friend_request.status == 'declined':
+            messages.info(request, "Friend request was previously declined")
     
     return redirect('accounts:profile')
 
 @login_required
-def accept_friend(request, friendship_id):
-    friendship = get_object_or_404(Friendship, id=friendship_id, to_user=request.user)
-    friendship.accepted = True
-    friendship.accepted_at = timezone.now()
-    friendship.save()
+def accept_friend(request, request_id):
+    friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
     
-    messages.success(request, f"You are now friends with {friendship.from_user.username}")
+    if friend_request.accept():
+        messages.success(request, f"You are now friends with {friend_request.from_user.username}")
+    else:
+        messages.error(request, "Unable to accept friend request")
+    
+    return redirect('accounts:profile')
+
+@login_required
+def decline_friend(request, request_id):
+    friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
+    
+    if friend_request.decline():
+        messages.success(request, f"Declined friend request from {friend_request.from_user.username}")
+    else:
+        messages.error(request, "Unable to decline friend request")
+    
     return redirect('accounts:profile')
 
 @login_required

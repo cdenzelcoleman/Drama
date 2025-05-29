@@ -92,8 +92,8 @@
         <a href="{% url 'movies:index' %}" class="nav-item-mobile" data-page="discover">
             <div class="nav-icon">🧭</div>
         </a>
-        <a href="{% url 'movies:favorites' %}" class="nav-item-mobile" data-page="favorites">
-            <div class="nav-icon">❤️</div>
+        <a href="{% url 'movies:friends_list' %}" class="nav-item-mobile" data-page="friends">
+            <div class="nav-icon">👥</div>
         </a>
         <a href="{% url 'movies:notifications' %}" class="nav-item-mobile" data-page="notifications">
             <div class="nav-icon">🔔</div>
@@ -118,7 +118,7 @@
                 if (
                     (page === 'home' && currentPath === '/movies/') ||
                     (page === 'discover' && currentPath === '/movies/') ||
-                    (page === 'favorites' && currentPath.includes('/favorites/')) ||
+                    (page === 'friends' && currentPath.includes('/friends/')) ||
                     (page === 'notifications' && currentPath.includes('/notifications/')) ||
                     (page === 'profile' && currentPath.includes('/accounts/profile/'))
                 ) {
