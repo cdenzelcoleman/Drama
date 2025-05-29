@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 import requests
 import json
 from django.conf import settings
-from .models import Movie, MovieList, MovieRating, Room, RoomMembership, Game, GameResult, Friendship, FriendRequest
+from .models import Movie, MovieList, MovieRating, Room, RoomMembership, Game, GameResult, Friendship, FriendRequest, Challenge
 from datetime import datetime
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -81,29 +81,48 @@ def get_random_movies(page=1):
         return data
     return None
 
-def index(request):
-    query = request.GET.get('q', '')
-    genre = request.GET.get('genre', '')
-    year = request.GET.get('year', '')
-    random_search = request.GET.get('random', '')
-    page = int(request.GET.get('page', 1))
-    
-    movies_data = None
+def home(request):
+    """Home page with banner and challengers section"""
     featured_movies = []
+    active_challenges = []
     
-    # Get featured movies for banner (movies a year or more older)
-    if page == 1:  # Only show banner on first page
-        try:
-            from datetime import date
-            current_year = date.today().year
-            max_year = current_year - 1  # Only movies from previous year or earlier
+    # Get featured movies for banner (random selection on each reload)
+    try:
+        import random
+        from datetime import date
+        current_year = date.today().year
+        max_year = current_year - 1  # Only movies from previous year or earlier
+        
+        # Get a random page from multiple sources for variety
+        random_page = random.randint(1, 10)
+        
+        # Use TMDB discover endpoint to get random older movies
+        url = f"{TMDB_BASE_URL}/discover/movie"
+        params = {
+            'api_key': TMDB_API_KEY,
+            'page': random_page,
+            'primary_release_date.lte': f'{max_year}-12-31',
+            'vote_average.gte': 6.5,  # Get reasonably well-rated older movies
+            'vote_count.gte': 50,     # Ensure enough votes
+            'sort_by': random.choice(['popularity.desc', 'vote_average.desc', 'release_date.desc'])
+        }
+        
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            featured_data = response.json()
             
-            featured_data = get_popular_movies(1)
             if featured_data and 'results' in featured_data:
-                # Filter and get movies that are a year or more older
-                for movie_data in featured_data['results']:
+                # Shuffle the results for more randomness
+                movie_results = featured_data['results']
+                random.shuffle(movie_results)
+                
+                # Filter and get movies that are old enough
+                for movie_data in movie_results:
+                    if len(featured_movies) >= 5:
+                        break
+                        
                     # Check if movie has release date and is old enough
-                    if movie_data.get('release_date'):
+                    if movie_data.get('release_date') and movie_data.get('backdrop_path'):
                         try:
                             release_date = datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date()
                             if release_date.year <= max_year:
@@ -121,61 +140,78 @@ def index(request):
                                     }
                                 )
                                 featured_movies.append(movie)
-                                
-                                # Stop when we have 5 movies
-                                if len(featured_movies) >= 5:
-                                    break
                         except Exception as e:
                             print(f"Error processing movie date for {movie_data.get('title', 'Unknown')}: {e}")
                             continue
-            
-            # If we don't have enough older movies from popular, try discover with year filter
-            if len(featured_movies) < 5:
-                try:
-                    # Use TMDB discover endpoint to get older movies
-                    url = f"{TMDB_BASE_URL}/discover/movie"
-                    params = {
-                        'api_key': TMDB_API_KEY,
-                        'primary_release_date.lte': f'{max_year}-12-31',
-                        'vote_average.gte': 7.0,  # Get well-rated older movies
-                        'vote_count.gte': 100,    # Ensure enough votes
-                        'sort_by': 'popularity.desc'
-                    }
+        
+        # If we still don't have enough movies, try a second random page
+        if len(featured_movies) < 5:
+            try:
+                second_random_page = random.randint(11, 20)
+                params['page'] = second_random_page
+                
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    additional_data = response.json()
                     
-                    import requests
-                    response = requests.get(url, params=params)
-                    if response.status_code == 200:
-                        older_movies_data = response.json()
+                    if additional_data and 'results' in additional_data:
+                        additional_results = additional_data['results']
+                        random.shuffle(additional_results)
                         
-                        for movie_data in older_movies_data.get('results', []):
+                        for movie_data in additional_results:
                             if len(featured_movies) >= 5:
                                 break
                                 
-                            if movie_data.get('release_date'):
+                            if movie_data.get('release_date') and movie_data.get('backdrop_path'):
                                 try:
                                     release_date = datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date()
-                                    movie, created = Movie.objects.get_or_create(
-                                        tmdb_id=movie_data['id'],
-                                        defaults={
-                                            'title': movie_data.get('title', ''),
-                                            'overview': movie_data.get('overview', ''),
-                                            'poster_path': movie_data.get('poster_path', ''),
-                                            'backdrop_path': movie_data.get('backdrop_path', ''),
-                                            'release_date': release_date,
-                                            'vote_average': movie_data.get('vote_average', 0.0),
-                                            'vote_count': movie_data.get('vote_count', 0),
-                                            'genre_ids': movie_data.get('genre_ids', [])
-                                        }
-                                    )
-                                    featured_movies.append(movie)
+                                    if release_date.year <= max_year:
+                                        movie, created = Movie.objects.get_or_create(
+                                            tmdb_id=movie_data['id'],
+                                            defaults={
+                                                'title': movie_data.get('title', ''),
+                                                'overview': movie_data.get('overview', ''),
+                                                'poster_path': movie_data.get('poster_path', ''),
+                                                'backdrop_path': movie_data.get('backdrop_path', ''),
+                                                'release_date': release_date,
+                                                'vote_average': movie_data.get('vote_average', 0.0),
+                                                'vote_count': movie_data.get('vote_count', 0),
+                                                'genre_ids': movie_data.get('genre_ids', [])
+                                            }
+                                        )
+                                        featured_movies.append(movie)
                                 except Exception as e:
-                                    print(f"Error creating older movie {movie_data.get('title', 'Unknown')}: {e}")
+                                    print(f"Error creating additional movie {movie_data.get('title', 'Unknown')}: {e}")
                                     continue
-                except Exception as e:
-                    print(f"Error getting older movies: {e}")
-                    
-        except Exception as e:
-            print(f"Error getting featured movies: {e}")
+            except Exception as e:
+                print(f"Error getting additional movies: {e}")
+                
+    except Exception as e:
+        print(f"Error getting featured movies: {e}")
+    
+    # Get active challenges for the user
+    if request.user.is_authenticated:
+        active_challenges = Challenge.objects.filter(
+            Q(challenger=request.user) | Q(challenged=request.user),
+            status='active'
+        ).select_related('challenger', 'challenged', 'challenger_movie', 'challenged_movie').order_by('-created_at')[:10]
+    
+    context = {
+        'featured_movies': featured_movies,
+        'active_challenges': active_challenges,
+    }
+    
+    return render(request, 'movies/home.html', context)
+
+def discover(request):
+    """Discover movies page with search and filtering"""
+    query = request.GET.get('q', '')
+    genre = request.GET.get('genre', '')
+    year = request.GET.get('year', '')
+    random_search = request.GET.get('random', '')
+    page = int(request.GET.get('page', 1))
+    
+    movies_data = None
     
     if query:
         movies_data = search_movies_tmdb(query, page)
@@ -216,7 +252,6 @@ def index(request):
     
     context = {
         'movies': movies,
-        'featured_movies': featured_movies,
         'query': query,
         'genre': genre,
         'year': year,
@@ -226,7 +261,7 @@ def index(request):
         'has_previous': page > 1
     }
     
-    return render(request, 'movies/index.html', context)
+    return render(request, 'movies/discover.html', context)
 
 @login_required
 def movie_detail(request, movie_id):
@@ -861,5 +896,108 @@ def remove_friend(request, user_id):
         else:
             return JsonResponse({'error': 'Not friends with this user'}, status=400)
             
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# Challenge Views
+@login_required
+def challenge_detail(request, challenge_id):
+    """View and interact with a specific challenge"""
+    challenge = get_object_or_404(Challenge, id=challenge_id)
+    
+    # Check if user is part of this challenge
+    if request.user not in [challenge.challenger, challenge.challenged]:
+        messages.error(request, "You don't have access to this challenge")
+        return redirect('movies:home')
+    
+    # Determine if current user is challenger or challenged
+    is_challenger = request.user == challenge.challenger
+    user_movie = challenge.challenger_movie if is_challenger else challenge.challenged_movie
+    opponent_movie = challenge.challenged_movie if is_challenger else challenge.challenger_movie
+    opponent = challenge.challenged if is_challenger else challenge.challenger
+    
+    context = {
+        'challenge': challenge,
+        'is_challenger': is_challenger,
+        'user_movie': user_movie,
+        'opponent_movie': opponent_movie,
+        'opponent': opponent,
+        'can_select_movie': not user_movie,
+        'ready_for_game': challenge.is_ready_for_game
+    }
+    
+    return render(request, 'movies/challenge_detail.html', context)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def select_challenge_movie(request, challenge_id):
+    """Select a movie for a challenge"""
+    try:
+        challenge = get_object_or_404(Challenge, id=challenge_id)
+        
+        # Check if user is part of this challenge
+        if request.user not in [challenge.challenger, challenge.challenged]:
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
+        data = json.loads(request.body)
+        movie_id = data.get('movie_id')
+        movie = get_object_or_404(Movie, id=movie_id)
+        
+        # Update the appropriate movie field
+        if request.user == challenge.challenger:
+            if challenge.challenger_movie:
+                return JsonResponse({'error': 'You have already selected a movie'}, status=400)
+            challenge.challenger_movie = movie
+        else:
+            if challenge.challenged_movie:
+                return JsonResponse({'error': 'You have already selected a movie'}, status=400)
+            challenge.challenged_movie = movie
+        
+        challenge.save()
+        
+        return JsonResponse({
+            'success': True,
+            'movie_title': movie.title,
+            'ready_for_game': challenge.is_ready_for_game
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_challenge(request, user_id):
+    """Create a new challenge with another user"""
+    try:
+        challenged_user = get_object_or_404(User, id=user_id)
+        
+        # Check if they're friends
+        if not Friendship.are_friends(request.user, challenged_user):
+            return JsonResponse({'error': 'You can only challenge friends'}, status=400)
+        
+        # Check if challenge already exists
+        existing_challenge = Challenge.objects.filter(
+            Q(challenger=request.user, challenged=challenged_user) |
+            Q(challenger=challenged_user, challenged=request.user),
+            status='active'
+        ).first()
+        
+        if existing_challenge:
+            return JsonResponse({'error': 'Active challenge already exists with this user'}, status=400)
+        
+        # Create challenge
+        challenge = Challenge.objects.create(
+            challenger=request.user,
+            challenged=challenged_user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Challenge sent to {challenged_user.username}!',
+            'challenge_id': str(challenge.id)
+        })
+        
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

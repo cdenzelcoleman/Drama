@@ -15,7 +15,7 @@
 <body>
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'movies:index' %}">
+            <a class="navbar-brand" href="{% url 'movies:home' %}">
                 🎬 Drama
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,7 +24,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'movies:index' %}">
+                        <a class="nav-link" href="{% url 'movies:discover' %}">
                             🍿 Movies
                         </a>
                     </li>
@@ -86,10 +86,10 @@
 
     <!-- Mobile Footer Navigation -->
     <nav class="mobile-footer-nav">
-        <a href="{% url 'movies:index' %}" class="nav-item-mobile" data-page="home">
+        <a href="{% url 'movies:home' %}" class="nav-item-mobile" data-page="home">
             <div class="nav-icon">🏠</div>
         </a>
-        <a href="{% url 'movies:index' %}" class="nav-item-mobile" data-page="discover">
+        <a href="{% url 'movies:discover' %}" class="nav-item-mobile" data-page="discover">
             <div class="nav-icon">🧭</div>
         </a>
         <a href="{% url 'movies:friends_list' %}" class="nav-item-mobile" data-page="friends">

@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}Discover Movies - Drama{% endblock %}
+
+{% block content %}
+<!-- Top Header for Mobile -->
+<div class="top-header">
+    <a href="{% url 'accounts:profile' %}" class="profile-pic-small">
+        👤
+    </a>
+    <input type="text" class="header-search" placeholder="Search movies..." id="headerSearch" value="{{ query }}">
+    <div class="messenger-icon" onclick="openMessenger()">
+        💬
+        <div class="messenger-badge">2</div>
+    </div>
+</div>
+
+
+<div class="mb-4">
+    <div class="text-center mb-3 mt-3">
+        <h1 class="game-title" style="font-size: 1.5rem;">🍿 Discover Movies</h1>
+        <p class="game-subtitle" style="font-size: 1rem;">Find your next favorite film</p>
+    </div>
+    
+    <!-- Mobile Filter Options -->
+    <div class="search-container" style="padding: 1rem; margin-bottom: 1rem;">
+        <form method="GET" class="mb-3">
+            <div class="row g-2">
+                <div class="col-6">
+                    <select class="form-control" name="genre" style="font-size: 0.875rem;">
+                        <option value="">All Genres</option>
+                        <option value="28" {% if genre == "28" %}selected{% endif %}>🎬 Action</option>
+                        <option value="35" {% if genre == "35" %}selected{% endif %}>😂 Comedy</option>
+                        <option value="18" {% if genre == "18" %}selected{% endif %}>🎭 Drama</option>
+                        <option value="27" {% if genre == "27" %}selected{% endif %}>👻 Horror</option>
+                        <option value="878" {% if genre == "878" %}selected{% endif %}>🚀 Sci-Fi</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <input type="number" class="form-control" name="year" placeholder="Year" value="{{ year }}" min="1900" max="2024" style="font-size: 0.875rem;">
+                </div>
+                <input type="hidden" name="q" value="{{ query }}">
+            </div>
+            <div class="flex gap-2 mt-2">
+                <button type="submit" class="btn btn-primary flex-1" style="font-size: 0.875rem;">Filter</button>
+                <a href="?random=1" class="btn btn-secondary" style="font-size: 0.875rem;">🎲 Random</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    {% for movie in movies %}
+        <div class="movie-card">
+            {% if movie.poster_url %}
+                <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}" loading="lazy">
+            {% else %}
+                <div class="movie-poster bg-gray-700 flex items-center justify-center">
+                    <span class="text-gray-400">🎬</span>
+                </div>
+            {% endif %}
+            <div class="movie-overlay">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex-1">
+                        <h3 class="movie-title">{{ movie.title }}</h3>
+                        <p class="movie-year">{{ movie.release_date|date:"Y" }} • ⭐ {{ movie.vote_average|floatformat:1 }}</p>
+                    </div>
+                    {% if user.is_authenticated %}
+                        <button class="favorite-btn" onclick="toggleFavorite({{ movie.id }})" data-movie-id="{{ movie.id }}">
+                            <span class="heart">🤍</span>
+                        </button>
+                    {% endif %}
+                </div>
+                
+                <div class="flex gap-2 mt-3">
+                    <a href="{% url 'movies:detail' movie.id %}" class="btn btn-primary btn-sm flex-1">
+                        👁️ View
+                    </a>
+                    {% if user.is_authenticated %}
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                ➕
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" id="room-dropdown-{{ movie.id }}">
+                                <li><a class="dropdown-item" href="#" onclick="loadUserRooms({{ movie.id }})">Loading rooms...</a></li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-span-full">
+            <div class="text-center p-8">
+                <div class="text-6xl mb-4">🔍</div>
+                <h3 class="text-xl font-semibold mb-2">No movies found</h3>
+                <p class="text-gray-400 mb-4">Try a different search or browse popular movies</p>
+                <a href="?random=1" class="btn btn-primary">🎲 Try Random Movies</a>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if has_previous or has_next %}
+<div class="flex justify-center items-center gap-2 mt-8">
+    {% if has_previous %}
+        <a href="?{% if query %}q={{ query }}&{% endif %}{% if genre %}genre={{ genre }}&{% endif %}{% if year %}year={{ year }}&{% endif %}page={{ page|add:'-1' }}" 
+           class="btn btn-secondary">
+            ← Previous
+        </a>
+    {% endif %}
+    <span class="px-4 py-2 bg-gray-700 rounded-lg">
+        Page {{ page }}
+    </span>
+    {% if has_next %}
+        <a href="?{% if query %}q={{ query }}&{% endif %}{% if genre %}genre={{ genre }}&{% endif %}{% if year %}year={{ year }}&{% endif %}page={{ page|add:'1' }}" 
+           class="btn btn-secondary">
+            Next →
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% csrf_token %}
+<script>
+let userRooms = null;
+
+async function loadUserRooms(movieId) {
+    if (userRooms === null) {
+        try {
+            const response = await fetch('/movies/api/user-rooms/');
+            userRooms = await response.json();
+        } catch (error) {
+            console.error('Error loading rooms:', error);
+            userRooms = [];
+        }
+    }
+    
+    const dropdown = document.getElementById(`room-dropdown-${movieId}`);
+    dropdown.innerHTML = '';
+    
+    if (userRooms.length === 0) {
+        dropdown.innerHTML = '<li><a class="dropdown-item" href="{% url "movies:room_create" %}">Create a Room</a></li>';
+    } else {
+        userRooms.forEach(room => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a class="dropdown-item" href="#" onclick="addMovieToRoom('${room.id}', ${movieId}, '${room.name}')">${room.name}</a>`;
+            dropdown.appendChild(li);
+        });
+        dropdown.innerHTML += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item" href="{% url "movies:room_create" %}">Create New Room</a></li>';
+    }
+}
+
+async function addMovieToRoom(roomId, movieId, roomName) {
+    try {
+        const response = await fetch(`/movies/rooms/${roomId}/add-movie/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ movie_id: movieId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`Movie added to ${roomName} successfully!`);
+        } else {
+            alert('Error adding movie to room: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error adding movie to room');
+    }
+}
+
+async function toggleFavorite(movieId) {
+    try {
+        const response = await fetch(`/movies/api/movies/${movieId}/toggle-favorite/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        const heartIcon = document.querySelector(`[data-movie-id="${movieId}"] .heart`);
+        
+        if (data.is_favorite) {
+            heartIcon.textContent = '❤️';
+            heartIcon.parentElement.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                heartIcon.parentElement.style.transform = 'scale(1)';
+            }, 200);
+        } else {
+            heartIcon.textContent = '🤍';
+        }
+    } catch (error) {
+        console.error('Error toggling favorite:', error);
+    }
+}
+
+// Header search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const headerSearch = document.getElementById('headerSearch');
+    if (headerSearch) {
+        headerSearch.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const searchValue = this.value.trim();
+                if (searchValue) {
+                    window.location.href = `{% url 'movies:discover' %}?q=${encodeURIComponent(searchValue)}`;
+                } else {
+                    window.location.href = `{% url 'movies:discover' %}`;
+                }
+            }
+        });
+    }
+});
+
+// Messenger functionality
+function openMessenger() {
+    // For now, just show an alert - in real app would open messaging interface
+    alert('Messages feature coming soon! 💬');
+}
+
+</script>
+{% endblock %}

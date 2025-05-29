@@ -102,7 +102,7 @@
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="challengeFriend('{{ friend.username }}')" 
+                            <button onclick="challengeFriend({{ friend.id }}, '{{ friend.username }}')" 
                                     class="btn btn-primary btn-sm">
                                 🎮 Challenge
                             </button>
@@ -181,9 +181,29 @@ async function removeFriend(userId, username) {
     }
 }
 
-function challengeFriend(username) {
-    // For now, just show an alert - in real app would create game challenge
-    alert(`Challenge ${username} to a movie game! This feature is coming soon! 🎬🎮`);
+async function challengeFriend(userId, username) {
+    try {
+        const response = await fetch(`/movies/api/challenges/create/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            // Redirect to the challenge detail page
+            window.location.href = `/movies/challenges/${data.challenge_id}/`;
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating challenge');
+    }
 }
 </script>
 {% csrf_token %}

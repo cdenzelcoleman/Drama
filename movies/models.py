@@ -155,6 +155,44 @@ class Friendship(models.Model):
                 friends.append(friendship.user1)
         return friends
 
+class Challenge(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('waiting_for_movie', 'Waiting for Movie Selection'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    challenger = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_challenges')
+    challenged = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_challenges')
+    challenger_movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='challenger_selections', null=True, blank=True)
+    challenged_movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='challenged_selections', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    winner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='won_challenges', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('challenger', 'challenged')
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(challenger=models.F('challenged')),
+                name='challenge_no_self_challenge'
+            )
+        ]
+    
+    def __str__(self):
+        return f"{self.challenger.username} vs {self.challenged.username} ({self.status})"
+    
+    @property
+    def both_movies_selected(self):
+        return self.challenger_movie and self.challenged_movie
+    
+    @property
+    def is_ready_for_game(self):
+        return self.status == 'active' and self.both_movies_selected
+
 class FriendRequest(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),

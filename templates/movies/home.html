@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Drama{% endblock %}
+
+{% block content %}
+<!-- Top Header for Mobile -->
+<div class="top-header">
+    <a href="{% url 'accounts:profile' %}" class="profile-pic-small">
+        👤
+    </a>
+    <a href="{% url 'movies:discover' %}" class="header-search-link" style="text-decoration: none; color: white; display: flex; align-items: center; flex: 1; background: rgba(255,255,255,0.1); border-radius: 20px; padding: 8px 16px; margin: 0 10px;">
+        🔍 Search movies...
+    </a>
+    <div class="messenger-icon" onclick="openMessenger()">
+        💬
+        <div class="messenger-badge">2</div>
+    </div>
+</div>
+
+<!-- Featured Movies Banner -->
+{% if featured_movies %}
+<div class="movie-banner">
+    <div class="banner-container" id="bannerContainer">
+        {% for movie in featured_movies %}
+            <div class="banner-slide">
+                {% if movie.backdrop_url %}
+                    <img src="{{ movie.backdrop_url }}" class="banner-poster" alt="{{ movie.title }}" loading="lazy">
+                {% endif %}
+                <div class="banner-content">
+                    <h2 class="banner-title">{{ movie.title }}</h2>
+                    <p class="banner-subtitle">{{ movie.overview|truncatewords:10 }}</p>
+                    <div class="banner-rating">
+                        <span>⭐ {{ movie.vote_average|floatformat:1 }}</span>
+                        <span>•</span>
+                        <span>{{ movie.release_date|date:"Y" }}</span>
+                    </div>
+                    <a href="{% url 'movies:detail' movie.id %}" class="banner-cta">View Details</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="banner-dots" id="bannerDots">
+        {% for movie in featured_movies %}
+            <div class="banner-dot {% if forloop.first %}active{% endif %}" onclick="goToSlide({{ forloop.counter0 }})"></div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Challengers Section -->
+{% if user.is_authenticated %}
+<div class="challengers-section" style="padding: 1rem; margin: 1rem 0;">
+    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.25rem; font-weight: bold; color: white; margin: 0;">🎯 Active Challenges</h2>
+        {% if active_challenges %}
+            <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem;">
+                {{ active_challenges|length }} active
+            </span>
+        {% endif %}
+    </div>
+    
+    {% if active_challenges %}
+        <div class="challengers-container" style="display: flex; overflow-x: auto; gap: 1rem; padding-bottom: 0.5rem;">
+            {% for challenge in active_challenges %}
+                <div class="challenger-card" style="flex: 0 0 auto; width: 120px; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+                    <a href="{% url 'movies:challenge_detail' challenge.id %}" style="text-decoration: none; color: inherit;">
+                        <!-- Opponent Avatar -->
+                        <div class="challenger-avatar" style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem; font-size: 1.5rem; color: white;">
+                            {% if challenge.challenger == user %}
+                                {{ challenge.challenged.username|slice:":1"|upper }}
+                            {% else %}
+                                {{ challenge.challenger.username|slice:":1"|upper }}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Username -->
+                        <div class="challenger-username" style="font-size: 0.875rem; font-weight: 600; color: white; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {% if challenge.challenger == user %}
+                                {{ challenge.challenged.username }}
+                            {% else %}
+                                {{ challenge.challenger.username }}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Movie Status -->
+                        <div class="movie-status" style="font-size: 0.75rem; color: #94a3b8;">
+                            {% if challenge.challenger == user %}
+                                {% if challenge.challenger_movie %}
+                                    {{ challenge.challenger_movie.title|truncatewords:2 }}
+                                {% else %}
+                                    <span style="color: #f59e0b;">Choose Movie</span>
+                                {% endif %}
+                            {% else %}
+                                {% if challenge.challenged_movie %}
+                                    {{ challenge.challenged_movie.title|truncatewords:2 }}
+                                {% else %}
+                                    <span style="color: #f59e0b;">Choose Movie</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Challenge Status -->
+                        <div class="challenge-status" style="margin-top: 0.5rem;">
+                            {% if challenge.is_ready_for_game %}
+                                <span style="background: #22c55e; color: white; padding: 0.25rem 0.5rem; border-radius: 8px; font-size: 0.625rem;">Ready!</span>
+                            {% else %}
+                                <span style="background: #f59e0b; color: white; padding: 0.25rem 0.5rem; border-radius: 8px; font-size: 0.625rem;">Waiting</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Show more button if there are many challenges -->
+        {% if active_challenges|length >= 4 %}
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="{% url 'movies:notifications' %}" style="color: #3b82f6; text-decoration: none; font-size: 0.875rem;">
+                    View all challenges →
+                </a>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="no-challenges" style="text-align: center; padding: 2rem; color: #94a3b8;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🎮</div>
+            <p style="margin-bottom: 1rem;">No active challenges</p>
+            <a href="{% url 'movies:friends_list' %}" style="background: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.875rem;">
+                Challenge Friends
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="quick-actions" style="padding: 1rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+    <a href="{% url 'movies:discover' %}" class="action-card" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 1rem; text-decoration: none; color: white; text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎬</div>
+        <div style="font-weight: 600; margin-bottom: 0.25rem;">Discover</div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">Browse movies</div>
+    </a>
+    
+    <a href="{% url 'movies:rooms_index' %}" class="action-card" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 1rem; text-decoration: none; color: white; text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏠</div>
+        <div style="font-weight: 600; margin-bottom: 0.25rem;">Rooms</div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">Movie rooms</div>
+    </a>
+</div>
+
+{% csrf_token %}
+<script>
+// Messenger functionality
+function openMessenger() {
+    alert('Messages feature coming soon! 💬');
+}
+
+// Banner functionality
+let currentSlide = 0;
+let totalSlides = 0;
+let bannerInterval;
+let startX = 0;
+let currentX = 0;
+let isDragging = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const banner = document.getElementById('bannerContainer');
+    const dots = document.getElementById('bannerDots');
+    
+    if (!banner) return;
+    
+    totalSlides = banner.children.length;
+    
+    if (totalSlides > 1) {
+        // Auto-scroll every 4 seconds
+        startAutoScroll();
+        
+        // Touch/swipe events
+        banner.addEventListener('touchstart', handleTouchStart, { passive: true });
+        banner.addEventListener('touchmove', handleTouchMove, { passive: true });
+        banner.addEventListener('touchend', handleTouchEnd, { passive: true });
+        
+        // Mouse events for desktop testing
+        banner.addEventListener('mousedown', handleMouseStart);
+        banner.addEventListener('mousemove', handleMouseMove);
+        banner.addEventListener('mouseup', handleMouseEnd);
+        banner.addEventListener('mouseleave', handleMouseEnd);
+        
+        // Pause auto-scroll on hover/touch
+        banner.addEventListener('mouseenter', stopAutoScroll);
+        banner.addEventListener('mouseleave', startAutoScroll);
+        banner.addEventListener('touchstart', stopAutoScroll);
+        banner.addEventListener('touchend', () => {
+            setTimeout(startAutoScroll, 3000); // Resume after 3s
+        });
+    }
+});
+
+function handleTouchStart(e) {
+    startX = e.touches[0].clientX;
+    isDragging = true;
+}
+
+function handleTouchMove(e) {
+    if (!isDragging) return;
+    currentX = e.touches[0].clientX;
+}
+
+function handleTouchEnd(e) {
+    if (!isDragging) return;
+    
+    const diffX = startX - currentX;
+    const threshold = 50; // Minimum swipe distance
+    
+    if (Math.abs(diffX) > threshold) {
+        if (diffX > 0) {
+            nextSlide();
+        } else {
+            prevSlide();
+        }
+    }
+    
+    isDragging = false;
+}
+
+function handleMouseStart(e) {
+    startX = e.clientX;
+    isDragging = true;
+    e.preventDefault();
+}
+
+function handleMouseMove(e) {
+    if (!isDragging) return;
+    currentX = e.clientX;
+    e.preventDefault();
+}
+
+function handleMouseEnd(e) {
+    if (!isDragging) return;
+    
+    const diffX = startX - currentX;
+    const threshold = 50;
+    
+    if (Math.abs(diffX) > threshold) {
+        if (diffX > 0) {
+            nextSlide();
+        } else {
+            prevSlide();
+        }
+    }
+    
+    isDragging = false;
+}
+
+function goToSlide(index) {
+    currentSlide = index;
+    updateBanner();
+}
+
+function nextSlide() {
+    currentSlide = (currentSlide + 1) % totalSlides;
+    updateBanner();
+}
+
+function prevSlide() {
+    currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+    updateBanner();
+}
+
+function updateBanner() {
+    const banner = document.getElementById('bannerContainer');
+    const dots = document.querySelectorAll('.banner-dot');
+    
+    if (banner) {
+        banner.style.transform = `translateX(-${currentSlide * 100}%)`;
+    }
+    
+    // Update dots
+    dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === currentSlide);
+    });
+}
+
+function startAutoScroll() {
+    if (totalSlides > 1) {
+        bannerInterval = setInterval(nextSlide, 4000);
+    }
+}
+
+function stopAutoScroll() {
+    if (bannerInterval) {
+        clearInterval(bannerInterval);
+        bannerInterval = null;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Challenge vs {{ opponent.username }} - Drama{% endblock %}
+
+{% block content %}
+<!-- Top Header -->
+<div class="top-header">
+    <a href="{% url 'movies:home' %}" class="back-btn" style="color: white; text-decoration: none; font-size: 1.2rem;">←</a>
+    <h1 style="margin: 0; font-size: 1rem; color: white;">Challenge</h1>
+    <div></div>
+</div>
+
+<div class="challenge-container" style="padding: 1rem; max-width: 600px; margin: 0 auto;">
+    <!-- Challenge Header -->
+    <div class="challenge-header" style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="color: white; margin-bottom: 0.5rem;">🎯 Movie Challenge</h2>
+        <p style="color: #94a3b8; margin: 0;">
+            {% if is_challenger %}
+                You challenged {{ opponent.username }}
+            {% else %}
+                {{ opponent.username }} challenged you
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Players Section -->
+    <div class="players-section" style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; margin-bottom: 2rem;">
+        <!-- Current User -->
+        <div class="player-card" style="background: rgba(59, 130, 246, 0.1); border: 2px solid {% if user_movie %}#22c55e{% else %}#f59e0b{% endif %}; border-radius: 12px; padding: 1rem; text-align: center;">
+            <div class="player-avatar" style="width: 80px; height: 80px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 2rem; color: white;">
+                {{ user.username|slice:":1"|upper }}
+            </div>
+            <h3 style="color: white; margin-bottom: 0.5rem; font-size: 1rem;">{{ user.username }}</h3>
+            
+            {% if user_movie %}
+                <div class="movie-selection" style="background: rgba(34, 197, 94, 0.2); border-radius: 8px; padding: 0.75rem; margin-top: 1rem;">
+                    {% if user_movie.poster_url %}
+                        <img src="{{ user_movie.poster_url }}" style="width: 60px; height: 90px; border-radius: 6px; margin-bottom: 0.5rem;" alt="{{ user_movie.title }}">
+                    {% endif %}
+                    <p style="color: #22c55e; font-size: 0.875rem; margin: 0; font-weight: 600;">{{ user_movie.title }}</p>
+                </div>
+            {% else %}
+                <div class="no-movie" style="background: rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 0.75rem; margin-top: 1rem; color: #f59e0b;">
+                    <p style="margin: 0; font-size: 0.875rem;">Choose your movie</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- VS -->
+        <div class="vs-indicator" style="color: white; font-size: 1.5rem; font-weight: bold;">VS</div>
+
+        <!-- Opponent -->
+        <div class="player-card" style="background: rgba(239, 68, 68, 0.1); border: 2px solid {% if opponent_movie %}#22c55e{% else %}#f59e0b{% endif %}; border-radius: 12px; padding: 1rem; text-align: center;">
+            <div class="player-avatar" style="width: 80px; height: 80px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 2rem; color: white;">
+                {{ opponent.username|slice:":1"|upper }}
+            </div>
+            <h3 style="color: white; margin-bottom: 0.5rem; font-size: 1rem;">{{ opponent.username }}</h3>
+            
+            {% if opponent_movie %}
+                <div class="movie-selection" style="background: rgba(34, 197, 94, 0.2); border-radius: 8px; padding: 0.75rem; margin-top: 1rem;">
+                    {% if opponent_movie.poster_url %}
+                        <img src="{{ opponent_movie.poster_url }}" style="width: 60px; height: 90px; border-radius: 6px; margin-bottom: 0.5rem;" alt="{{ opponent_movie.title }}">
+                    {% endif %}
+                    <p style="color: #22c55e; font-size: 0.875rem; margin: 0; font-weight: 600;">{{ opponent_movie.title }}</p>
+                </div>
+            {% else %}
+                <div class="no-movie" style="background: rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 0.75rem; margin-top: 1rem; color: #f59e0b;">
+                    <p style="margin: 0; font-size: 0.875rem;">Choosing movie...</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Action Section -->
+    <div class="action-section" style="text-align: center;">
+        {% if ready_for_game %}
+            <div class="ready-status" style="background: rgba(34, 197, 94, 0.2); border: 2px solid #22c55e; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎮</div>
+                <h3 style="color: #22c55e; margin-bottom: 0.5rem;">Ready to Play!</h3>
+                <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.875rem;">Both players have selected their movies</p>
+                <a href="{% url 'movies:room_create' %}" style="background: #22c55e; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    Start Game
+                </a>
+            </div>
+        {% elif can_select_movie %}
+            <div class="select-movie" style="background: rgba(245, 158, 11, 0.2); border: 2px solid #f59e0b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎬</div>
+                <h3 style="color: #f59e0b; margin-bottom: 0.5rem;">Choose Your Movie</h3>
+                <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.875rem;">Select a movie to compete with</p>
+                <a href="{% url 'movies:discover' %}?challenge={{ challenge.id }}" style="background: #f59e0b; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    Browse Movies
+                </a>
+            </div>
+        {% else %}
+            <div class="waiting-status" style="background: rgba(107, 114, 128, 0.2); border: 2px solid #6b7280; border-radius: 12px; padding: 1.5rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">⏳</div>
+                <h3 style="color: #6b7280; margin-bottom: 0.5rem;">Waiting for {{ opponent.username }}</h3>
+                <p style="color: #94a3b8; margin: 0; font-size: 0.875rem;">
+                    {% if not opponent_movie %}
+                        {{ opponent.username }} is choosing their movie
+                    {% else %}
+                        You've both selected movies. Ready to play!
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Challenge Info -->
+    <div class="challenge-info" style="background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1rem; margin-top: 2rem;">
+        <h4 style="color: white; margin-bottom: 0.5rem; font-size: 0.875rem;">Challenge Details</h4>
+        <p style="color: #94a3b8; font-size: 0.75rem; margin: 0;">
+            Created {{ challenge.created_at|timesince }} ago • Status: {{ challenge.get_status_display }}
+        </p>
+    </div>
+</div>
+
+{% csrf_token %}
+<script>
+// Movie selection functionality would be added here
+// For now, users will browse movies and select from there
+</script>
+{% endblock %}

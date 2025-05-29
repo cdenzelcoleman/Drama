@@ -3,7 +3,8 @@ from . import views
 
 app_name = 'movies'
 urlpatterns = [
-    path('', views.index, name='index'),
+    path('', views.home, name='home'),
+    path('discover/', views.discover, name='discover'),
     path('<int:movie_id>/', views.movie_detail, name='detail'),
     
     # Room URLs
@@ -38,4 +39,9 @@ urlpatterns = [
     path('api/friends/request/<int:user_id>/', views.send_friend_request, name='send_friend_request'),
     path('api/friends/respond/<int:request_id>/', views.respond_friend_request, name='respond_friend_request'),
     path('api/friends/remove/<int:user_id>/', views.remove_friend, name='remove_friend'),
+    
+    # Challenge URLs
+    path('challenges/<uuid:challenge_id>/', views.challenge_detail, name='challenge_detail'),
+    path('api/challenges/create/<int:user_id>/', views.create_challenge, name='create_challenge'),
+    path('api/challenges/<uuid:challenge_id>/select-movie/', views.select_challenge_movie, name='select_challenge_movie'),
 ]
