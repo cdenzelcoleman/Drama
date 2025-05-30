@@ -28,13 +28,6 @@
                             🍿 Movies
                         </a>
                     </li>
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'movies:rooms_index' %}">
-                                🏠 Rooms
-                            </a>
-                        </li>
-                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'games:index' %}">
                             🎮 Games

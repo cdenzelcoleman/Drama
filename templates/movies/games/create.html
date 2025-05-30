@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}Create Game - {{ room.name }} - Drama{% endblock %}
+{% block title %}Create Game - Challenge - Drama{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
-        <h1>Create Game for {{ room.name }}</h1>
+        <h1>Create Game for Challenge</h1>
+        <p class="text-muted">{{ challenge.challenger.username }} vs {{ challenge.challenged.username }}</p>
         
         <div class="card">
             <div class="card-body">
@@ -17,7 +18,9 @@
                             <select class="form-select" name="movie_id" id="movie_id" required>
                                 <option value="">Choose a movie...</option>
                                 {% for movie in movies %}
-                                    <option value="{{ movie.id }}">{{ movie.title }} ({{ movie.release_date|date:"Y" }})</option>
+                                    {% if movie %}
+                                        <option value="{{ movie.id }}">{{ movie.title }} ({{ movie.release_date|date:"Y" }})</option>
+                                    {% endif %}
                                 {% endfor %}
                             </select>
                         </div>
@@ -32,15 +35,15 @@
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'movies:room_detail' room.id %}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <a href="{% url 'movies:challenge_detail' challenge.id %}" class="btn btn-secondary me-md-2">Cancel</a>
                             <button type="submit" class="btn btn-success">Create Game</button>
                         </div>
                     </form>
                 {% else %}
                     <div class="alert alert-warning">
-                        <h5>No movies in room!</h5>
-                        <p>You need to add movies to this room before creating games.</p>
-                        <a href="{% url 'movies:index' %}" class="btn btn-primary">Browse Movies</a>
+                        <h5>Movies not ready!</h5>
+                        <p>Both players need to select movies before creating games.</p>
+                        <a href="{% url 'movies:challenge_detail' challenge.id %}" class="btn btn-primary">Back to Challenge</a>
                     </div>
                 {% endif %}
             </div>

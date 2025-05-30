@@ -19,7 +19,19 @@
 <div class="mb-4">
     <div class="text-center mb-3 mt-3">
         <h1 class="game-title" style="font-size: 1.5rem;">🍿 Discover Movies</h1>
-        <p class="game-subtitle" style="font-size: 1rem;">Find your next favorite film</p>
+        {% if challenge %}
+            <div class="challenge-mode-banner" style="background: rgba(245, 158, 11, 0.2); border: 2px solid #f59e0b; border-radius: 8px; padding: 0.75rem; margin: 1rem 0; color: #f59e0b;">
+                <p style="margin: 0; font-weight: 600;">🎯 Challenge Mode: Select a movie to compete with 
+                {% if challenge.challenger == user %}
+                    {{ challenge.challenged.username }}
+                {% else %}
+                    {{ challenge.challenger.username }}
+                {% endif %}
+                </p>
+                <a href="{% url 'movies:challenge_detail' challenge.id %}" style="color: #f59e0b; text-decoration: underline; font-size: 0.875rem;">← Back to Challenge</a>
+            </div>
+        {% endif %}
+        <p class="game-subtitle" style="font-size: 1rem;">{% if challenge %}Choose your weapon{% else %}Find your next favorite film{% endif %}</p>
     </div>
     
     <!-- Mobile Filter Options -->
@@ -40,28 +52,32 @@
                     <input type="number" class="form-control" name="year" placeholder="Year" value="{{ year }}" min="1900" max="2024" style="font-size: 0.875rem;">
                 </div>
                 <input type="hidden" name="q" value="{{ query }}">
+                {% if challenge %}
+                    <input type="hidden" name="challenge" value="{{ challenge.id }}">
+                {% endif %}
             </div>
-            <div class="flex gap-2 mt-2">
-                <button type="submit" class="btn btn-primary flex-1" style="font-size: 0.875rem;">Filter</button>
-                <a href="?random=1" class="btn btn-secondary" style="font-size: 0.875rem;">🎲 Random</a>
+            <div class="d-flex gap-2 mt-2">
+                <button type="submit" class="btn btn-primary flex-fill" style="font-size: 0.875rem;">Filter</button>
+                <a href="?random=1{% if challenge %}&challenge={{ challenge.id }}{% endif %}" class="btn btn-secondary" style="font-size: 0.875rem;">🎲 Random</a>
             </div>
         </form>
     </div>
 </div>
 
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+<div class="row g-3">
     {% for movie in movies %}
-        <div class="movie-card">
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="movie-card">
             {% if movie.poster_url %}
                 <img src="{{ movie.poster_url }}" class="movie-poster" alt="{{ movie.title }}" loading="lazy">
             {% else %}
-                <div class="movie-poster bg-gray-700 flex items-center justify-center">
-                    <span class="text-gray-400">🎬</span>
+                <div class="movie-poster bg-secondary d-flex align-items-center justify-content-center">
+                    <span class="text-muted">🎬</span>
                 </div>
             {% endif %}
             <div class="movie-overlay">
-                <div class="flex justify-between items-start mb-2">
-                    <div class="flex-1">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="flex-fill">
                         <h3 class="movie-title">{{ movie.title }}</h3>
                         <p class="movie-year">{{ movie.release_date|date:"Y" }} • ⭐ {{ movie.vote_average|floatformat:1 }}</p>
                     </div>
@@ -72,30 +88,30 @@
                     {% endif %}
                 </div>
                 
-                <div class="flex gap-2 mt-3">
-                    <a href="{% url 'movies:detail' movie.id %}" class="btn btn-primary btn-sm flex-1">
-                        👁️ View
-                    </a>
-                    {% if user.is_authenticated %}
-                        <div class="dropdown">
-                            <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                ➕
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end" id="room-dropdown-{{ movie.id }}">
-                                <li><a class="dropdown-item" href="#" onclick="loadUserRooms({{ movie.id }})">Loading rooms...</a></li>
-                            </ul>
-                        </div>
+                <div class="d-flex gap-2 mt-3">
+                    {% if challenge %}
+                        <button onclick="selectMovieForChallenge('{{ movie.id }}', '{{ movie.title }}')" class="btn btn-success btn-sm flex-fill">
+                            ✅ Select for Challenge
+                        </button>
+                        <a href="{% url 'movies:detail' movie.id %}" class="btn btn-outline-primary btn-sm">
+                            👁️
+                        </a>
+                    {% else %}
+                        <a href="{% url 'movies:detail' movie.id %}" class="btn btn-primary btn-sm w-100">
+                            👁️ View
+                        </a>
                     {% endif %}
                 </div>
             </div>
         </div>
+        </div>
     {% empty %}
-        <div class="col-span-full">
-            <div class="text-center p-8">
-                <div class="text-6xl mb-4">🔍</div>
-                <h3 class="text-xl font-semibold mb-2">No movies found</h3>
-                <p class="text-gray-400 mb-4">Try a different search or browse popular movies</p>
-                <a href="?random=1" class="btn btn-primary">🎲 Try Random Movies</a>
+        <div class="col-12">
+            <div class="text-center p-5">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🔍</div>
+                <h3 class="h5 mb-2">No movies found</h3>
+                <p class="text-muted mb-4">Try a different search or browse popular movies</p>
+                <a href="?random=1{% if challenge %}&challenge={{ challenge.id }}{% endif %}" class="btn btn-primary">🎲 Try Random Movies</a>
             </div>
         </div>
     {% endfor %}
@@ -103,18 +119,18 @@
 
 <!-- Pagination -->
 {% if has_previous or has_next %}
-<div class="flex justify-center items-center gap-2 mt-8">
+<div class="d-flex justify-content-center align-items-center gap-2 mt-4">
     {% if has_previous %}
-        <a href="?{% if query %}q={{ query }}&{% endif %}{% if genre %}genre={{ genre }}&{% endif %}{% if year %}year={{ year }}&{% endif %}page={{ page|add:'-1' }}" 
+        <a href="?{% if query %}q={{ query }}&{% endif %}{% if genre %}genre={{ genre }}&{% endif %}{% if year %}year={{ year }}&{% endif %}{% if challenge %}challenge={{ challenge.id }}&{% endif %}page={{ page|add:'-1' }}" 
            class="btn btn-secondary">
             ← Previous
         </a>
     {% endif %}
-    <span class="px-4 py-2 bg-gray-700 rounded-lg">
+    <span class="btn btn-outline-secondary disabled">
         Page {{ page }}
     </span>
     {% if has_next %}
-        <a href="?{% if query %}q={{ query }}&{% endif %}{% if genre %}genre={{ genre }}&{% endif %}{% if year %}year={{ year }}&{% endif %}page={{ page|add:'1' }}" 
+        <a href="?{% if query %}q={{ query }}&{% endif %}{% if genre %}genre={{ genre }}&{% endif %}{% if year %}year={{ year }}&{% endif %}{% if challenge %}challenge={{ challenge.id }}&{% endif %}page={{ page|add:'1' }}" 
            class="btn btn-secondary">
             Next →
         </a>
@@ -124,37 +140,15 @@
 
 {% csrf_token %}
 <script>
-let userRooms = null;
 
-async function loadUserRooms(movieId) {
-    if (userRooms === null) {
-        try {
-            const response = await fetch('/movies/api/user-rooms/');
-            userRooms = await response.json();
-        } catch (error) {
-            console.error('Error loading rooms:', error);
-            userRooms = [];
-        }
+{% if challenge %}
+async function selectMovieForChallenge(movieId, movieTitle) {
+    if (!confirm(`Select "${movieTitle}" for your challenge?`)) {
+        return;
     }
     
-    const dropdown = document.getElementById(`room-dropdown-${movieId}`);
-    dropdown.innerHTML = '';
-    
-    if (userRooms.length === 0) {
-        dropdown.innerHTML = '<li><a class="dropdown-item" href="{% url "movies:room_create" %}">Create a Room</a></li>';
-    } else {
-        userRooms.forEach(room => {
-            const li = document.createElement('li');
-            li.innerHTML = `<a class="dropdown-item" href="#" onclick="addMovieToRoom('${room.id}', ${movieId}, '${room.name}')">${room.name}</a>`;
-            dropdown.appendChild(li);
-        });
-        dropdown.innerHTML += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item" href="{% url "movies:room_create" %}">Create New Room</a></li>';
-    }
-}
-
-async function addMovieToRoom(roomId, movieId, roomName) {
     try {
-        const response = await fetch(`/movies/rooms/${roomId}/add-movie/`, {
+        const response = await fetch(`/movies/api/challenges/{{ challenge.id }}/select-movie/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -166,15 +160,17 @@ async function addMovieToRoom(roomId, movieId, roomName) {
         const data = await response.json();
         
         if (data.success) {
-            alert(`Movie added to ${roomName} successfully!`);
+            alert(`"${movieTitle}" selected for your challenge!`);
+            window.location.href = '{% url "movies:challenge_detail" challenge.id %}';
         } else {
-            alert('Error adding movie to room: ' + (data.error || 'Unknown error'));
+            alert('Error selecting movie: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error adding movie to room');
+        alert('Error selecting movie');
     }
 }
+{% endif %}
 
 async function toggleFavorite(movieId) {
     try {

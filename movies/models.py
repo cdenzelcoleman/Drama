@@ -53,38 +53,6 @@ class MovieRating(models.Model):
     def __str__(self):
         return f"{self.user.username} rated {self.movie.title}: {self.rating}/5"
 
-class Room(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=100)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_rooms')
-    members = models.ManyToManyField(User, through='RoomMembership', related_name='rooms')
-    selected_movies = models.ManyToManyField(Movie, blank=True, related_name='rooms')
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return f"{self.name} (Owner: {self.owner.username})"
-
-class RoomMembership(models.Model):
-    INVITATION_CHOICES = [
-        ('pending', 'Pending'),
-        ('accepted', 'Accepted'),
-        ('declined', 'Declined'),
-    ]
-    
-    room = models.ForeignKey(Room, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    status = models.CharField(max_length=10, choices=INVITATION_CHOICES, default='pending')
-    invited_at = models.DateTimeField(auto_now_add=True)
-    responded_at = models.DateTimeField(null=True, blank=True)
-    
-    class Meta:
-        unique_together = ('room', 'user')
-    
-    def __str__(self):
-        return f"{self.user.username} in {self.room.name} ({self.status})"
-
 class Game(models.Model):
     GAME_TYPES = [
         ('taps', 'Taps'),
@@ -92,7 +60,7 @@ class Game(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='games')
+    challenge = models.ForeignKey('Challenge', on_delete=models.CASCADE, related_name='games')
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='games')
     game_type = models.CharField(max_length=10, choices=GAME_TYPES)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_movie_games')
@@ -102,7 +70,7 @@ class Game(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.get_game_type_display()} for {self.movie.title} in {self.room.name}"
+        return f"{self.get_game_type_display()} for {self.movie.title} in Challenge: {self.challenge.challenger.username} vs {self.challenge.challenged.username}"
 
 class GameResult(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='results')
