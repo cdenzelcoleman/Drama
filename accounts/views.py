@@ -4,6 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from .models import UserProfile
 from movies.models import Friendship, FriendRequest
 from .forms import EmailSignUpForm, PasswordSetupForm
@@ -142,3 +144,16 @@ def search_users(request):
         'users': users,
         'query': query
     })
+
+@login_required
+def upload_avatar(request):
+    if request.method == 'POST' and request.FILES.get('avatar'):
+        try:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            profile.avatar = request.FILES['avatar']
+            profile.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'No file provided'})

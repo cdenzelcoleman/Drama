@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Profile - Drama{% endblock %}
 
@@ -6,8 +7,18 @@
 <div class="max-w-2xl mx-auto">
     <!-- Profile Header -->
     <div class="profile-header">
-        <div class="profile-avatar">
-            👤
+        <div class="profile-avatar" style="position: relative; display: inline-block;">
+            {% if profile.avatar %}
+                <img src="{{ profile.avatar.url }}" alt="Profile Avatar" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #6366f1;">
+            {% else %}
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white;">
+                    👤
+                </div>
+            {% endif %}
+            <label for="avatar-upload" style="position: absolute; bottom: 0; right: 0; background: #6366f1; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px;">
+                📷
+            </label>
+            <input type="file" id="avatar-upload" accept="image/*" style="display: none;" onchange="uploadAvatar(this)">
         </div>
         <h1 class="profile-name">{{ user.first_name|default:user.username }}</h1>
         <p class="profile-email">{{ user.email }}</p>
@@ -174,4 +185,33 @@ input:checked + .slider:before {
   transform: translateX(24px);
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function uploadAvatar(input) {
+    if (input.files && input.files[0]) {
+        const formData = new FormData();
+        formData.append('avatar', input.files[0]);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch('{% url "accounts:upload_avatar" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Reload to show new avatar
+            } else {
+                alert('Failed to upload avatar: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to upload avatar');
+        });
+    }
+}
+</script>
 {% endblock %}

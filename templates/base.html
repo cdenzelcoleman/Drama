@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}Drama - Social Movie Picker{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'images/Dramalogo.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/Dramalogo.png' %}">
+    <link rel="shortcut icon" href="{% static 'images/Dramalogo.png' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -37,8 +40,8 @@
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:profile' %}">
-                                👤 Profile
+                            <a class="nav-link" href="{% url 'accounts:profile' %}" style="display: flex; align-items: center; gap: 8px;">
+                                <img src="{% static 'images/Dramalogo.png' %}" alt="Drama Logo" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"> Profile
                             </a>
                         </li>
                         <li class="nav-item">
@@ -92,7 +95,17 @@
             <div class="nav-icon">🔔</div>
         </a>
         <a href="{% url 'accounts:profile' %}" class="nav-item-mobile" data-page="profile">
-            <div class="nav-icon">👤</div>
+            <div class="nav-icon">
+                {% if user.is_authenticated %}
+                    {% if user.profile and user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="Profile Avatar" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                    {% else %}
+                        👤
+                    {% endif %}
+                {% else %}
+                    👤
+                {% endif %}
+            </div>
         </a>
     </nav>
 

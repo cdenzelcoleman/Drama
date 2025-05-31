@@ -11,4 +11,5 @@ urlpatterns = [
     path('friends/accept/<int:request_id>/', views.accept_friend, name='accept_friend'),
     path('friends/decline/<int:request_id>/', views.decline_friend, name='decline_friend'),
     path('friends/search/', views.search_users, name='search_users'),
+    path('upload-avatar/', views.upload_avatar, name='upload_avatar'),
 ]
