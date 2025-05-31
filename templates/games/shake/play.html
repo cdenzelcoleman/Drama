@@ -149,8 +149,8 @@
 {% block content %}
 <div class="game-container">
     <div class="game-header">
-        <h1 class="game-title">📳 Shake Race</h1>
-        <p class="game-subtitle">{{ game.movie.title }}</p>
+        <h1 class="game-title">📳 {{ game.name }}</h1>
+        <p class="game-subtitle">{{ game.description|default:"Shake your device to win!" }}</p>
     </div>
         
         {% if existing_result %}
@@ -178,24 +178,6 @@
             </div>
         </div>
         
-        <div class="race-track">
-            <div class="finish-line"></div>
-            <div class="race-lane player1">
-                <div class="player-label">You</div>
-                <div class="race-progress" id="player1Progress">
-                    <div class="avatar">🏃</div>
-                </div>
-            </div>
-            <div class="race-lane player2">
-                <div class="player-label">CPU</div>
-                <div class="race-progress" id="player2Progress">
-                    <div class="avatar">🤖</div>
-                </div>
-            </div>
-            <div class="multiplayer-info">
-                First to reach the finish line wins!
-            </div>
-        </div>
 
         <div class="shake-area" id="shakeArea">
             <div class="text-center text-white">
@@ -214,12 +196,12 @@
             <p>Your score: <span id="finalScore"></span> shakes</p>
         </div>
         
-    <div class="flex gap-2 justify-center mt-4">
-        <a href="{% url 'movies:room_detail' game.room.id %}" class="btn btn-secondary">
-            ← Back to Room
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a href="{% url 'games:shake_detail' game.id %}" class="btn btn-secondary">
+            ← Back to Game
         </a>
-        <a href="{% url 'movies:game_results' game.id %}" class="btn btn-success">
-            📊 View Results
+        <a href="{% url 'games:index' %}" class="btn btn-success">
+            🎮 All Games
         </a>
     </div>
 </div>
@@ -232,11 +214,10 @@ let score = 0;
 let timeLeft = 10;
 let timer;
 let shakes = [];
-let lastShake = 0;
-let shakeThreshold = 15;
-let cpuScore = 0;
-let raceDistance = 100; // Distance to finish line
-let gameWon = false;
+let lastAcceleration = null;
+let shakeThreshold = 12; // Sensitivity for shake detection
+let isMotionSupported = false;
+let motionPermissionGranted = false;
 
 const scoreElement = document.getElementById('score');
 const timerElement = document.getElementById('timer');
@@ -245,16 +226,108 @@ const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const results = document.getElementById('results');
 const finalScore = document.getElementById('finalScore');
-const player1Progress = document.getElementById('player1Progress');
-const player2Progress = document.getElementById('player2Progress');
+
+// Check for motion support and prepare for permission request
+function initializeMotion() {
+    if (window.DeviceMotionEvent !== undefined) {
+        isMotionSupported = true;
+        
+        // For iOS 13+, show permission button
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+            document.getElementById('deviceWarning').innerHTML = 
+                '<div class="alert alert-info"><strong>📱 iOS Device Detected</strong><br>' +
+                'To use shake detection, you need to enable motion sensors.<br>' +
+                '<small>This allows the game to detect when you shake your device.</small></div>' +
+                '<button id="enableMotionBtn" class="btn btn-primary mt-2">🎯 Enable Motion Sensors</button>';
+        } else {
+            // For non-iOS devices (Android, etc.)
+            motionPermissionGranted = true;
+            document.getElementById('deviceWarning').innerHTML = 
+                '<p class="text-success"><strong>✅ Motion sensor ready!</strong> Shake your device to play.</p>';
+        }
+    } else {
+        isMotionSupported = false;
+        document.getElementById('deviceWarning').innerHTML = 
+            '<p class="text-info"><strong>ℹ️ No motion sensor detected.</strong> Tap the area rapidly to play.</p>';
+    }
+}
+
+// Request motion permission (must be called from user interaction)
+async function requestMotionPermission() {
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        try {
+            const permission = await DeviceMotionEvent.requestPermission();
+            if (permission === 'granted') {
+                motionPermissionGranted = true;
+                document.getElementById('deviceWarning').innerHTML = 
+                    '<div class="alert alert-success"><strong>✅ Motion sensors enabled!</strong><br>' +
+                    'You can now shake your device to play the game.</div>';
+                return true;
+            } else {
+                document.getElementById('deviceWarning').innerHTML = 
+                    '<div class="alert alert-warning"><strong>⚠️ Motion permission denied</strong><br>' +
+                    'No problem! You can still play by tapping the game area rapidly.</div>';
+                return false;
+            }
+        } catch (error) {
+            console.error('Error requesting motion permission:', error);
+            document.getElementById('deviceWarning').innerHTML = 
+                '<div class="alert alert-warning"><strong>⚠️ Motion setup failed</strong><br>' +
+                'This might be because the site is not using HTTPS. You can still play by tapping the game area rapidly.</div>';
+            return false;
+        }
+    }
+    return true; // For non-iOS devices
+}
+
+// Handle device motion
+function handleMotion(event) {
+    if (!gameActive || !motionPermissionGranted) return;
+    
+    const acceleration = event.accelerationIncludingGravity;
+    if (!acceleration) return;
+    
+    if (lastAcceleration) {
+        const deltaX = Math.abs(acceleration.x - lastAcceleration.x);
+        const deltaY = Math.abs(acceleration.y - lastAcceleration.y);
+        const deltaZ = Math.abs(acceleration.z - lastAcceleration.z);
+        
+        const shakeIntensity = deltaX + deltaY + deltaZ;
+        
+        if (shakeIntensity > shakeThreshold) {
+            registerShake(shakeIntensity);
+        }
+    }
+    
+    lastAcceleration = acceleration;
+}
+
+function registerShake(intensity = 10) {
+    if (!gameActive) return;
+    
+    score++;
+    scoreElement.textContent = score;
+    
+    shakes.push({
+        timestamp: Date.now(),
+        intensity: intensity
+    });
+    
+    // Visual feedback
+    shakeArea.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+    shakeArea.style.transform = `scale(${1 + Math.min(intensity / 200, 0.2)})`;
+    
+    setTimeout(() => {
+        shakeArea.style.background = 'linear-gradient(135deg, #ffc107 0%, #fd7e14 100%)';
+        shakeArea.style.transform = 'scale(1)';
+    }, 150);
+}
 
 function startGame() {
     gameActive = true;
     score = 0;
-    cpuScore = 0;
     timeLeft = 10;
     shakes = [];
-    gameWon = false;
     
     scoreElement.textContent = score;
     timerElement.textContent = timeLeft;
@@ -263,65 +336,35 @@ function startGame() {
     resetBtn.style.display = 'none';
     results.style.display = 'none';
     
-    // Reset race progress
-    player1Progress.style.width = '0%';
-    player2Progress.style.width = '0%';
-    
-    shakeArea.innerHTML = '<div class="text-center text-white"><h2>SHAKE NOW!</h2></div>';
+    shakeArea.innerHTML = '<div class="text-center text-white"><h2>SHAKE NOW!</h2><p>Shake your device or tap rapidly!</p></div>';
     shakeArea.classList.remove('disabled');
+    
+    // Start motion detection
+    if (isMotionSupported && motionPermissionGranted) {
+        window.addEventListener('devicemotion', handleMotion);
+    }
     
     timer = setInterval(() => {
         timeLeft--;
         timerElement.textContent = timeLeft;
         
-        // CPU AI - gradually increases difficulty
-        if (Math.random() < 0.3 + (10 - timeLeft) * 0.05) {
-            cpuScore++;
-            updateRaceProgress();
-        }
-        
-        if (timeLeft <= 0 || gameWon) {
+        if (timeLeft <= 0) {
             endGame();
         }
     }, 1000);
-}
-
-function updateRaceProgress() {
-    // Update player progress (1 shake = ~3% progress)
-    const playerProgress = Math.min((score / raceDistance) * 100, 100);
-    const cpuProgress = Math.min((cpuScore / raceDistance) * 100, 100);
-    
-    player1Progress.style.width = playerProgress + '%';
-    player2Progress.style.width = cpuProgress + '%';
-    
-    // Check for winner
-    if (playerProgress >= 100 && !gameWon) {
-        gameWon = true;
-        results.innerHTML = '<h3>🏆 You Win!</h3><p>You reached the finish line first!</p>';
-        endGame();
-    } else if (cpuProgress >= 100 && !gameWon) {
-        gameWon = true;
-        results.innerHTML = '<h3>😔 CPU Wins!</h3><p>The CPU reached the finish line first!</p>';
-        endGame();
-    }
 }
 
 function endGame() {
     gameActive = false;
     clearInterval(timer);
     
-    shakeArea.innerHTML = '<div class="text-center text-white"><h2>Game Over!</h2></div>';
-    shakeArea.classList.add('disabled');
-    
-    if (!gameWon) {
-        if (score > cpuScore) {
-            results.innerHTML = '<h3>🏆 You Win!</h3><p>You had more shakes when time ran out!</p>';
-        } else if (cpuScore > score) {
-            results.innerHTML = '<h3>😔 CPU Wins!</h3><p>CPU had more shakes when time ran out!</p>';
-        } else {
-            results.innerHTML = '<h3>🤝 It\'s a Tie!</h3><p>Both players had the same score!</p>';
-        }
+    // Stop motion detection
+    if (isMotionSupported && motionPermissionGranted) {
+        window.removeEventListener('devicemotion', handleMotion);
     }
+    
+    shakeArea.innerHTML = '<div class="text-center text-white"><h2>Time\'s Up!</h2></div>';
+    shakeArea.classList.add('disabled');
     
     finalScore.textContent = score;
     results.style.display = 'block';
@@ -332,7 +375,7 @@ function endGame() {
 }
 
 function submitScore() {
-    fetch('{% url "movies:submit_game_result" game.id %}', {
+    fetch('{% url "games:shake_play" game.id %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -356,16 +399,10 @@ function submitScore() {
 function resetGame() {
     gameActive = false;
     score = 0;
-    cpuScore = 0;
     timeLeft = 10;
-    gameWon = false;
     
     scoreElement.textContent = score;
     timerElement.textContent = timeLeft;
-    
-    // Reset race progress
-    player1Progress.style.width = '0%';
-    player2Progress.style.width = '0%';
     
     shakeArea.innerHTML = '<div class="text-center text-white"><h2>Ready to Shake!</h2><p>Shake your device or tap rapidly</p></div>';
     shakeArea.classList.remove('disabled');
@@ -375,67 +412,66 @@ function resetGame() {
     results.style.display = 'none';
 }
 
-function recordShake() {
-    if (!gameActive || gameWon) return;
-    
-    const now = Date.now();
-    if (now - lastShake > 100) { // Prevent spam
-        score++;
-        scoreElement.textContent = score;
-        lastShake = now;
-        
-        shakes.push({
-            timestamp: now,
-            type: 'shake'
-        });
-        
-        // Update race progress
-        updateRaceProgress();
-        
-        // Visual feedback
-        shakeArea.classList.add('shaking');
-        setTimeout(() => {
-            shakeArea.classList.remove('shaking');
-        }, 100);
-    }
-}
-
-// Device motion detection
-if (window.DeviceMotionEvent) {
-    let lastAcceleration = {x: 0, y: 0, z: 0};
-    
-    window.addEventListener('devicemotion', (event) => {
-        if (!gameActive) return;
-        
-        const acceleration = event.accelerationIncludingGravity;
-        const deltaX = Math.abs(acceleration.x - lastAcceleration.x);
-        const deltaY = Math.abs(acceleration.y - lastAcceleration.y);
-        const deltaZ = Math.abs(acceleration.z - lastAcceleration.z);
-        
-        if (deltaX + deltaY + deltaZ > shakeThreshold) {
-            recordShake();
-        }
-        
-        lastAcceleration = acceleration;
-    });
-} else {
-    document.getElementById('deviceWarning').innerHTML = 
-        '<h5>⚠️ Motion Sensors Not Supported</h5><p>Your device doesn\'t support motion detection. You can still play by tapping rapidly!</p>';
-}
-
-// Click/touch alternative for desktop
-shakeArea.addEventListener('click', () => {
+// Add tap/click support for devices without motion sensors or as fallback
+shakeArea.addEventListener('click', (e) => {
     if (!gameActive) {
         if (startBtn.style.display !== 'none') {
             startGame();
         }
         return;
     }
-    recordShake();
+    
+    registerShake(15); // Simulate shake intensity
 });
 
-startBtn.addEventListener('click', startGame);
-resetBtn.addEventListener('click', resetGame);
+// Initialize motion detection and event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    initializeMotion();
+    
+    // Handle motion permission button (for iOS)
+    document.addEventListener('click', async function(e) {
+        if (e.target.id === 'enableMotionBtn') {
+            await requestMotionPermission();
+        }
+    });
+    
+    startBtn.addEventListener('click', async () => {
+        // For iOS, ensure permission is granted before starting
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+            if (!motionPermissionGranted) {
+                const granted = await requestMotionPermission();
+                if (!granted) {
+                    // Still allow the game to start without motion
+                    console.log('Motion permission denied, game will use tap input');
+                }
+            }
+        }
+        startGame();
+    });
+    
+    resetBtn.addEventListener('click', resetGame);
+});
+
+// Add some CSS for shake animation
+document.head.appendChild(document.createElement('style')).textContent = `
+    .shaking {
+        animation: shake 0.5s;
+    }
+    
+    @keyframes shake {
+        0% { transform: translate(1px, 1px) rotate(0deg); }
+        10% { transform: translate(-1px, -2px) rotate(-1deg); }
+        20% { transform: translate(-3px, 0px) rotate(1deg); }
+        30% { transform: translate(3px, 2px) rotate(0deg); }
+        40% { transform: translate(1px, -1px) rotate(1deg); }
+        50% { transform: translate(-1px, 2px) rotate(-1deg); }
+        60% { transform: translate(-3px, 1px) rotate(0deg); }
+        70% { transform: translate(3px, 1px) rotate(-1deg); }
+        80% { transform: translate(-1px, -1px) rotate(1deg); }
+        90% { transform: translate(1px, 2px) rotate(0deg); }
+        100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+`;
 </script>
 {% csrf_token %}
 {% endblock %}

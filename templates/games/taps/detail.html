@@ -1,56 +1,20 @@
-{% extends 'base.html' %}
+{% extends 'games/base_detail.html' %}
 
-{% block title %}{{ game.name }} - Taps Game{% endblock %}
+{% block game_title %}Taps Game{% endblock %}
 
-{% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <h1>{{ game.name }}</h1>
-        <p class="lead">{{ game.description }}</p>
-        
-        <div class="card mb-4">
-            <div class="card-body text-center">
-                <h3>🎯 Ready to Play?</h3>
-                <p>Tap as fast as you can in 10 seconds!</p>
-                <a href="{% url 'games:taps_play' game.id %}" class="btn btn-success btn-lg">Start Game</a>
-            </div>
-        </div>
-        
-        {% if participant.score %}
-            <div class="alert alert-success">
-                <h4>Your Best Score: {{ participant.score }} taps</h4>
-            </div>
-        {% endif %}
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h4>🏆 Leaderboard</h4>
-            </div>
-            <div class="card-body">
-                {% if leaderboard %}
-                    <ol class="list-unstyled">
-                        {% for result in leaderboard %}
-                            <li class="d-flex justify-content-between align-items-center mb-2">
-                                <span {% if result.participant.user == user %}class="fw-bold text-primary"{% endif %}>
-                                    {{ result.participant.user.username }}
-                                </span>
-                                <span class="badge bg-primary">{{ result.score }}</span>
-                            </li>
-                        {% endfor %}
-                    </ol>
-                {% else %}
-                    <p class="text-muted">No scores yet. Be the first!</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
+{% block game_intro %}
+<h3>🎯 Ready to Play?</h3>
+<p>Tap as fast as you can in 10 seconds!</p>
+{% endblock %}
 
-<div class="row mt-4">
-    <div class="col-12">
-        <a href="{% url 'games:taps_index' %}" class="btn btn-secondary">← Back to Taps Games</a>
-    </div>
-</div>
+{% block game_button %}
+<a href="{% url 'games:taps_play' game.id %}" class="btn btn-success btn-lg">Start Game</a>
+{% endblock %}
+
+{% block score_unit %}taps{% endblock %}
+
+{% block badge_class %}bg-success{% endblock %}
+
+{% block back_button %}
+<a href="{% url 'games:taps_index' %}" class="btn btn-secondary">← Back to Taps Games</a>
 {% endblock %}

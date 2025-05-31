@@ -37,7 +37,10 @@
                     {% if user_movie.poster_url %}
                         <img src="{{ user_movie.poster_url }}" style="width: 60px; height: 90px; border-radius: 6px; margin-bottom: 0.5rem;" alt="{{ user_movie.title }}">
                     {% endif %}
-                    <p style="color: #22c55e; font-size: 0.875rem; margin: 0; font-weight: 600;">{{ user_movie.title }}</p>
+                    <p style="color: #22c55e; font-size: 0.875rem; margin: 0 0 0.5rem 0; font-weight: 600;">{{ user_movie.title }}</p>
+                    <a href="{% url 'movies:discover' %}?challenge={{ challenge.id }}" style="background: rgba(59, 130, 246, 0.3); color: #3b82f6; padding: 0.25rem 0.5rem; border-radius: 4px; text-decoration: none; font-size: 0.75rem;">
+                        🔄 Change Movie
+                    </a>
                 </div>
             {% else %}
                 <div class="no-movie" style="background: rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 0.75rem; margin-top: 1rem; color: #f59e0b;">
@@ -108,7 +111,14 @@
 
     <!-- Challenge Info -->
     <div class="challenge-info" style="background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1rem; margin-top: 2rem;">
-        <h4 style="color: white; margin-bottom: 0.5rem; font-size: 0.875rem;">Challenge Details</h4>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h4 style="color: white; margin: 0; font-size: 0.875rem;">Challenge Details</h4>
+            {% if challenge.status == 'active' %}
+                <button onclick="cancelChallenge()" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
+                    ❌ Cancel Challenge
+                </button>
+            {% endif %}
+        </div>
         <p style="color: #94a3b8; font-size: 0.75rem; margin: 0;">
             Created {{ challenge.created_at|timesince }} ago • Status: {{ challenge.get_status_display }}
         </p>
@@ -117,7 +127,32 @@
 
 {% csrf_token %}
 <script>
-// Movie selection functionality would be added here
-// For now, users will browse movies and select from there
+async function cancelChallenge() {
+    if (!confirm('Are you sure you want to cancel this challenge? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/movies/api/challenges/{{ challenge.id }}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Challenge cancelled successfully');
+            window.location.href = '{% url "movies:home" %}';
+        } else {
+            alert('Error cancelling challenge: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error cancelling challenge');
+    }
+}
 </script>
 {% endblock %}

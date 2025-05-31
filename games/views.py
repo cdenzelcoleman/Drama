@@ -3,10 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from django.db import models
 from .models import Game, GameParticipant, GameResult
 import json
-import random
 
 def index(request):
     games = Game.objects.filter(is_active=True).order_by('-created_at')
@@ -18,25 +16,30 @@ def taps_index(request):
     return render(request, 'games/taps/index.html', {'games': taps_games})
 
 @login_required
-def taps_detail(request, game_id):
-    game = get_object_or_404(Game, id=game_id, game_type='taps')
-    participant, created = GameParticipant.objects.get_or_create(
+def game_detail(request, game_id, game_type):
+    game = get_object_or_404(Game, id=game_id, game_type=game_type)
+    participant, _ = GameParticipant.objects.get_or_create(
         user=request.user,
         game=game
     )
     
     leaderboard = GameResult.objects.filter(game=game).order_by('-score')[:10]
     
-    return render(request, 'games/taps/detail.html', {
+    template_name = f'games/{game_type}/detail.html'
+    return render(request, template_name, {
         'game': game,
         'participant': participant,
         'leaderboard': leaderboard
     })
 
 @login_required
-def taps_play(request, game_id):
-    game = get_object_or_404(Game, id=game_id, game_type='taps')
-    participant, created = GameParticipant.objects.get_or_create(
+def taps_detail(request, game_id):
+    return game_detail(request, game_id, 'taps')
+
+@login_required
+def game_play(request, game_id, game_type):
+    game = get_object_or_404(Game, id=game_id, game_type=game_type)
+    participant, _ = GameParticipant.objects.get_or_create(
         user=request.user,
         game=game
     )
@@ -45,7 +48,7 @@ def taps_play(request, game_id):
         try:
             data = json.loads(request.body)
             score = int(data.get('score', 0))
-            taps_data = data.get('taps', [])
+            game_data = data.get(game_type, [])
             
             participant.score = max(participant.score, score)
             participant.completed_at = timezone.now()
@@ -55,17 +58,22 @@ def taps_play(request, game_id):
                 game=game,
                 participant=participant,
                 score=score,
-                data={'taps': taps_data, 'timestamp': timezone.now().isoformat()}
+                data={game_type: game_data, 'timestamp': timezone.now().isoformat()}
             )
             
             return JsonResponse({'success': True, 'score': score})
         except (json.JSONDecodeError, ValueError):
             return JsonResponse({'success': False, 'error': 'Invalid data'})
     
-    return render(request, 'games/taps/play.html', {
+    template_name = f'games/{game_type}/play.html'
+    return render(request, template_name, {
         'game': game,
         'participant': participant
     })
+
+@login_required
+def taps_play(request, game_id):
+    return game_play(request, game_id, 'taps')
 
 @login_required
 def shake_index(request):
@@ -74,53 +82,11 @@ def shake_index(request):
 
 @login_required
 def shake_detail(request, game_id):
-    game = get_object_or_404(Game, id=game_id, game_type='shake')
-    participant, created = GameParticipant.objects.get_or_create(
-        user=request.user,
-        game=game
-    )
-    
-    leaderboard = GameResult.objects.filter(game=game).order_by('-score')[:10]
-    
-    return render(request, 'games/shake/detail.html', {
-        'game': game,
-        'participant': participant,
-        'leaderboard': leaderboard
-    })
+    return game_detail(request, game_id, 'shake')
 
 @login_required
 def shake_play(request, game_id):
-    game = get_object_or_404(Game, id=game_id, game_type='shake')
-    participant, created = GameParticipant.objects.get_or_create(
-        user=request.user,
-        game=game
-    )
-    
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            score = int(data.get('score', 0))
-            shake_data = data.get('shakes', [])
-            
-            participant.score = max(participant.score, score)
-            participant.completed_at = timezone.now()
-            participant.save()
-            
-            GameResult.objects.create(
-                game=game,
-                participant=participant,
-                score=score,
-                data={'shakes': shake_data, 'timestamp': timezone.now().isoformat()}
-            )
-            
-            return JsonResponse({'success': True, 'score': score})
-        except (json.JSONDecodeError, ValueError):
-            return JsonResponse({'success': False, 'error': 'Invalid data'})
-    
-    return render(request, 'games/shake/play.html', {
-        'game': game,
-        'participant': participant
-    })
+    return game_play(request, game_id, 'shake')
 
 @login_required
 def create_game(request):

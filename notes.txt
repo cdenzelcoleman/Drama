@@ -1,2 +1,10 @@
 mobile needs logout
 select for movies on challenges
+sound when game start 
+and a countodwn with sounds
+sound when it stops.
+
+when game ends show who won in replace on screen.
+the touch game should not be scrollable.
+
+also everything needs to be visible in between the nav bar and not be covered by it.

@@ -36,4 +36,5 @@ urlpatterns = [
     path('challenges/<uuid:challenge_id>/', views.challenge_detail, name='challenge_detail'),
     path('api/challenges/create/<int:user_id>/', views.create_challenge, name='create_challenge'),
     path('api/challenges/<uuid:challenge_id>/select-movie/', views.select_challenge_movie, name='select_challenge_movie'),
+    path('api/challenges/<uuid:challenge_id>/cancel/', views.cancel_challenge, name='cancel_challenge'),
 ]

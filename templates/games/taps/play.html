@@ -47,8 +47,8 @@
 {% block content %}
 <div class="game-container">
     <div class="game-header">
-        <h1 class="game-title">🖱️ Quick Taps</h1>
-        <p class="game-subtitle">{{ game.movie.title }}</p>
+        <h1 class="game-title">🖱️ {{ game.name }}</h1>
+        <p class="game-subtitle">{{ game.description|default:"Tap as fast as you can!" }}</p>
     </div>
         
         {% if existing_result %}
@@ -88,12 +88,12 @@
             <p>Your score: <span id="finalScore"></span> taps</p>
         </div>
         
-    <div class="flex gap-2 justify-center mt-4">
-        <a href="{% url 'movies:room_detail' game.room.id %}" class="btn btn-secondary">
-            ← Back to Room
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a href="{% url 'games:taps_detail' game.id %}" class="btn btn-secondary">
+            ← Back to Game
         </a>
-        <a href="{% url 'movies:game_results' game.id %}" class="btn btn-success">
-            📊 View Results
+        <a href="{% url 'games:index' %}" class="btn btn-success">
+            🎮 All Games
         </a>
     </div>
 </div>
@@ -157,7 +157,7 @@ function endGame() {
 }
 
 function submitScore() {
-    fetch('{% url "movies:submit_game_result" game.id %}', {
+    fetch('{% url "games:taps_play" game.id %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

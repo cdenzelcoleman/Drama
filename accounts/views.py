@@ -3,7 +3,7 @@ from django.contrib.auth import login as auth_login, logout as auth_logout, auth
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from django.db import models
+from django.db.models import Q
 from .models import UserProfile
 from movies.models import Friendship, FriendRequest
 from .forms import EmailSignUpForm, PasswordSetupForm
@@ -134,8 +134,8 @@ def search_users(request):
     
     if query:
         users = User.objects.filter(
-            models.Q(username__icontains=query) |
-            models.Q(email__icontains=query)
+            Q(username__icontains=query) |
+            Q(email__icontains=query)
         ).exclude(id=request.user.id)[:10]
     
     return render(request, 'accounts/search_users.html', {

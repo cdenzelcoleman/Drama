@@ -17,69 +17,104 @@ from django.db.models import Q
 TMDB_API_KEY = settings.TMDB_API_KEY
 TMDB_BASE_URL = 'https://api.themoviedb.org/3'
 
-def get_movie_from_tmdb(tmdb_id):
-    url = f"{TMDB_BASE_URL}/movie/{tmdb_id}"
-    params = {'api_key': TMDB_API_KEY}
+class TMDBClient:
+    """Unified client for TMDB API operations"""
     
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        return data
-    return None
+    def __init__(self):
+        self.api_key = TMDB_API_KEY
+        self.base_url = TMDB_BASE_URL
+    
+    def _make_request(self, endpoint, params=None):
+        """Make a generic request to TMDB API"""
+        url = f"{self.base_url}/{endpoint}"
+        request_params = {'api_key': self.api_key}
+        if params:
+            request_params.update(params)
+        
+        response = requests.get(url, params=request_params)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    
+    def get_movie(self, tmdb_id):
+        """Get a single movie by TMDB ID"""
+        return self._make_request(f"movie/{tmdb_id}")
+    
+    def search_movies(self, query, page=1):
+        """Search for movies by query"""
+        return self._make_request("search/movie", {'query': query, 'page': page})
+    
+    def get_popular_movies(self, page=1):
+        """Get popular movies"""
+        return self._make_request("movie/popular", {'page': page})
+    
+    def discover_movies(self, page=1, **kwargs):
+        """Discover movies with custom parameters"""
+        params = {'page': page}
+        params.update(kwargs)
+        return self._make_request("discover/movie", params)
+
+# Create a shared TMDB client instance
+tmdb_client = TMDBClient()
+
+def create_movie_from_tmdb_data(movie_data, release_date=None):
+    """
+    Create or get a Movie object from TMDB data.
+    
+    Args:
+        movie_data: Dictionary containing TMDB movie data
+        release_date: Optional datetime.date object, if not provided will parse from movie_data
+    
+    Returns:
+        Tuple of (movie, created) where movie is the Movie instance and created is boolean
+    """
+    if release_date is None and movie_data.get('release_date'):
+        try:
+            release_date = datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date()
+        except ValueError:
+            release_date = None
+    
+    return Movie.objects.get_or_create(
+        tmdb_id=movie_data['id'],
+        defaults={
+            'title': movie_data.get('title', ''),
+            'overview': movie_data.get('overview', ''),
+            'poster_path': movie_data.get('poster_path', ''),
+            'backdrop_path': movie_data.get('backdrop_path', ''),
+            'release_date': release_date,
+            'vote_average': movie_data.get('vote_average', 0.0),
+            'vote_count': movie_data.get('vote_count', 0),
+            'genre_ids': movie_data.get('genre_ids', [])
+        }
+    )
+
+def get_movie_from_tmdb(tmdb_id):
+    """Legacy wrapper for TMDB client"""
+    return tmdb_client.get_movie(tmdb_id)
 
 def search_movies_tmdb(query, page=1):
-    url = f"{TMDB_BASE_URL}/search/movie"
-    params = {
-        'api_key': TMDB_API_KEY,
-        'query': query,
-        'page': page
-    }
-    
-    response = requests.get(url, params=params)
-    print(f"TMDB Search - URL: {url}, Params: {params}")
-    print(f"TMDB Search - Status: {response.status_code}")
-    
-    if response.status_code == 200:
-        data = response.json()
-        print(f"TMDB Search - Results count: {len(data.get('results', []))}")
-        return data
-    else:
-        print(f"TMDB Search - Error: {response.text}")
-    return None
+    """Legacy wrapper for TMDB client"""
+    return tmdb_client.search_movies(query, page)
 
 def get_popular_movies(page=1):
-    url = f"{TMDB_BASE_URL}/movie/popular"
-    params = {
-        'api_key': TMDB_API_KEY,
-        'page': page
-    }
-    
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        return response.json()
-    return None
+    """Legacy wrapper for TMDB client"""
+    return tmdb_client.get_popular_movies(page)
 
 def get_random_movies(page=1):
+    """Get random movies using discover endpoint"""
     import random
-    # Get a random page from 1-500 to get diverse results
     random_page = random.randint(1, 100)
     
-    url = f"{TMDB_BASE_URL}/discover/movie"
-    params = {
-        'api_key': TMDB_API_KEY,
-        'page': random_page,
-        'sort_by': 'popularity.desc',
-        'vote_count.gte': 100  # Ensure movies have enough votes
-    }
+    data = tmdb_client.discover_movies(
+        page=random_page,
+        sort_by='popularity.desc',
+        **{'vote_count.gte': 100}
+    )
     
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        # Shuffle the results for more randomness
-        if 'results' in data:
-            random.shuffle(data['results'])
-        return data
-    return None
+    # Shuffle the results for more randomness
+    if data and 'results' in data:
+        random.shuffle(data['results'])
+    return data
 
 def home(request):
     """Home page with banner and challengers section"""
@@ -97,21 +132,17 @@ def home(request):
         random_page = random.randint(1, 10)
         
         # Use TMDB discover endpoint to get random older movies
-        url = f"{TMDB_BASE_URL}/discover/movie"
-        params = {
-            'api_key': TMDB_API_KEY,
-            'page': random_page,
-            'primary_release_date.lte': f'{max_year}-12-31',
-            'vote_average.gte': 6.5,  # Get reasonably well-rated older movies
-            'vote_count.gte': 50,     # Ensure enough votes
-            'sort_by': random.choice(['popularity.desc', 'vote_average.desc', 'release_date.desc'])
-        }
+        featured_data = tmdb_client.discover_movies(
+            page=random_page,
+            **{
+                'primary_release_date.lte': f'{max_year}-12-31',
+                'vote_average.gte': 6.5,
+                'vote_count.gte': 50,
+                'sort_by': random.choice(['popularity.desc', 'vote_average.desc', 'release_date.desc'])
+            }
+        )
         
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            featured_data = response.json()
-            
-            if featured_data and 'results' in featured_data:
+        if featured_data and 'results' in featured_data:
                 # Shuffle the results for more randomness
                 movie_results = featured_data['results']
                 random.shuffle(movie_results)
@@ -126,19 +157,7 @@ def home(request):
                         try:
                             release_date = datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date()
                             if release_date.year <= max_year:
-                                movie, created = Movie.objects.get_or_create(
-                                    tmdb_id=movie_data['id'],
-                                    defaults={
-                                        'title': movie_data.get('title', ''),
-                                        'overview': movie_data.get('overview', ''),
-                                        'poster_path': movie_data.get('poster_path', ''),
-                                        'backdrop_path': movie_data.get('backdrop_path', ''),
-                                        'release_date': release_date,
-                                        'vote_average': movie_data.get('vote_average', 0.0),
-                                        'vote_count': movie_data.get('vote_count', 0),
-                                        'genre_ids': movie_data.get('genre_ids', [])
-                                    }
-                                )
+                                movie, created = create_movie_from_tmdb_data(movie_data, release_date)
                                 featured_movies.append(movie)
                         except Exception as e:
                             print(f"Error processing movie date for {movie_data.get('title', 'Unknown')}: {e}")
@@ -148,13 +167,18 @@ def home(request):
         if len(featured_movies) < 5:
             try:
                 second_random_page = random.randint(11, 20)
-                params['page'] = second_random_page
                 
-                response = requests.get(url, params=params)
-                if response.status_code == 200:
-                    additional_data = response.json()
-                    
-                    if additional_data and 'results' in additional_data:
+                additional_data = tmdb_client.discover_movies(
+                    page=second_random_page,
+                    **{
+                        'primary_release_date.lte': f'{max_year}-12-31',
+                        'vote_average.gte': 6.5,
+                        'vote_count.gte': 50,
+                        'sort_by': random.choice(['popularity.desc', 'vote_average.desc', 'release_date.desc'])
+                    }
+                )
+                
+                if additional_data and 'results' in additional_data:
                         additional_results = additional_data['results']
                         random.shuffle(additional_results)
                         
@@ -166,19 +190,7 @@ def home(request):
                                 try:
                                     release_date = datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date()
                                     if release_date.year <= max_year:
-                                        movie, created = Movie.objects.get_or_create(
-                                            tmdb_id=movie_data['id'],
-                                            defaults={
-                                                'title': movie_data.get('title', ''),
-                                                'overview': movie_data.get('overview', ''),
-                                                'poster_path': movie_data.get('poster_path', ''),
-                                                'backdrop_path': movie_data.get('backdrop_path', ''),
-                                                'release_date': release_date,
-                                                'vote_average': movie_data.get('vote_average', 0.0),
-                                                'vote_count': movie_data.get('vote_count', 0),
-                                                'genre_ids': movie_data.get('genre_ids', [])
-                                            }
-                                        )
+                                        movie, created = create_movie_from_tmdb_data(movie_data, release_date)
                                         featured_movies.append(movie)
                                 except Exception as e:
                                     print(f"Error creating additional movie {movie_data.get('title', 'Unknown')}: {e}")
@@ -233,19 +245,7 @@ def discover(request):
                     continue
             
             try:
-                movie, created = Movie.objects.get_or_create(
-                    tmdb_id=movie_data['id'],
-                    defaults={
-                        'title': movie_data.get('title', ''),
-                        'overview': movie_data.get('overview', ''),
-                        'poster_path': movie_data.get('poster_path', ''),
-                        'backdrop_path': movie_data.get('backdrop_path', ''),
-                        'release_date': datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date() if movie_data.get('release_date') else None,
-                        'vote_average': movie_data.get('vote_average', 0.0),
-                        'vote_count': movie_data.get('vote_count', 0),
-                        'genre_ids': movie_data.get('genre_ids', [])
-                    }
-                )
+                movie, created = create_movie_from_tmdb_data(movie_data)
                 movies.append(movie)
             except Exception as e:
                 print(f"Error creating movie {movie_data.get('title', 'Unknown')}: {e}")
@@ -321,19 +321,7 @@ def api_movies_list(request):
     movies = []
     if movies_data and 'results' in movies_data:
         for movie_data in movies_data['results']:
-            movie, created = Movie.objects.get_or_create(
-                tmdb_id=movie_data['id'],
-                defaults={
-                    'title': movie_data.get('title', ''),
-                    'overview': movie_data.get('overview', ''),
-                    'poster_path': movie_data.get('poster_path', ''),
-                    'backdrop_path': movie_data.get('backdrop_path', ''),
-                    'release_date': datetime.strptime(movie_data['release_date'], '%Y-%m-%d').date() if movie_data.get('release_date') else None,
-                    'vote_average': movie_data.get('vote_average', 0.0),
-                    'vote_count': movie_data.get('vote_count', 0),
-                    'genre_ids': movie_data.get('genre_ids', [])
-                }
-            )
+            movie, created = create_movie_from_tmdb_data(movie_data)
             
             movies.append({
                 'id': movie.id,
@@ -848,14 +836,10 @@ def select_challenge_movie(request, challenge_id):
         movie_id = data.get('movie_id')
         movie = get_object_or_404(Movie, id=movie_id)
         
-        # Update the appropriate movie field
+        # Update the appropriate movie field (allow changing selection)
         if request.user == challenge.challenger:
-            if challenge.challenger_movie:
-                return JsonResponse({'error': 'You have already selected a movie'}, status=400)
             challenge.challenger_movie = movie
         else:
-            if challenge.challenged_movie:
-                return JsonResponse({'error': 'You have already selected a movie'}, status=400)
             challenge.challenged_movie = movie
         
         challenge.save()
@@ -901,6 +885,41 @@ def create_challenge(request, user_id):
             'success': True,
             'message': f'Challenge sent to {challenged_user.username}!',
             'challenge_id': str(challenge.id)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def cancel_challenge(request, challenge_id):
+    """Cancel an active challenge"""
+    try:
+        challenge = get_object_or_404(Challenge, id=challenge_id)
+        
+        # Check if user is part of this challenge
+        if request.user not in [challenge.challenger, challenge.challenged]:
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
+        # Check if challenge can be cancelled (only active challenges)
+        if challenge.status != 'active':
+            return JsonResponse({'error': 'This challenge cannot be cancelled'}, status=400)
+        
+        # Update challenge status to cancelled
+        challenge.status = 'cancelled'
+        challenge.save()
+        
+        # Also cancel any associated games
+        associated_games = Game.objects.filter(challenge=challenge, is_active=True)
+        for game in associated_games:
+            game.is_active = False
+            game.ended_at = timezone.now()
+            game.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Challenge cancelled successfully'
         })
         
     except Exception as e:
