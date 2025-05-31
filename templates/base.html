@@ -83,27 +83,46 @@
     <!-- Mobile Footer Navigation -->
     <nav class="mobile-footer-nav">
         <a href="{% url 'movies:home' %}" class="nav-item-mobile" data-page="home">
-            <div class="nav-icon">🏠</div>
+            <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9,22 9,12 15,12 15,22"/>
+            </svg>
         </a>
         <a href="{% url 'movies:discover' %}" class="nav-item-mobile" data-page="discover">
-            <div class="nav-icon">🧭</div>
+            <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+            </svg>
         </a>
         <a href="{% url 'movies:friends_list' %}" class="nav-item-mobile" data-page="friends">
-            <div class="nav-icon">👥</div>
+            <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="8.5" cy="7" r="4"/>
+                <path d="M20 8v6M23 11h-6"/>
+            </svg>
         </a>
         <a href="{% url 'movies:notifications' %}" class="nav-item-mobile" data-page="notifications">
-            <div class="nav-icon">🔔</div>
+            <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
         </a>
         <a href="{% url 'accounts:profile' %}" class="nav-item-mobile" data-page="profile">
-            <div class="nav-icon">
+            <div class="nav-icon profile-avatar">
                 {% if user.is_authenticated %}
                     {% if user.profile and user.profile.avatar %}
-                        <img src="{{ user.profile.avatar.url }}" alt="Profile Avatar" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                        <img src="{{ user.profile.avatar.url }}" alt="Profile Avatar" class="avatar-img">
                     {% else %}
-                        👤
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
                     {% endif %}
                 {% else %}
-                    👤
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
                 {% endif %}
             </div>
         </a>
@@ -117,20 +136,34 @@
             const currentPath = window.location.pathname;
             const navItems = document.querySelectorAll('.nav-item-mobile');
             
-            navItems.forEach(item => {
-                const page = item.getAttribute('data-page');
-                item.classList.remove('active');
-                
-                if (
-                    (page === 'home' && currentPath === '/movies/') ||
-                    (page === 'discover' && currentPath === '/movies/') ||
-                    (page === 'friends' && currentPath.includes('/friends/')) ||
-                    (page === 'notifications' && currentPath.includes('/notifications/')) ||
-                    (page === 'profile' && currentPath.includes('/accounts/profile/'))
-                ) {
-                    item.classList.add('active');
+            // Remove active class from all items first
+            navItems.forEach(item => item.classList.remove('active'));
+            
+            // Determine which page should be active
+            let activePage = null;
+            
+            if (currentPath === '/' || currentPath === '/movies/') {
+                activePage = 'home';
+            } else if (currentPath.includes('/discover/')) {
+                activePage = 'discover';
+            } else if (currentPath.includes('/friends/')) {
+                activePage = 'friends';
+            } else if (currentPath.includes('/notifications/')) {
+                activePage = 'notifications';
+            } else if (currentPath.includes('/accounts/profile/')) {
+                activePage = 'profile';
+            }
+            
+            // Add active class to the correct item
+            if (activePage) {
+                const activeItem = document.querySelector(`[data-page="${activePage}"]`);
+                if (activeItem) {
+                    activeItem.classList.add('active');
                 }
-            });
+            }
+            
+            // Debug: console log for development
+            console.log('Current path:', currentPath, '| Active page:', activePage);
         });
     </script>
     {% block extra_js %}{% endblock %}

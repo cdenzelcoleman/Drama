@@ -114,6 +114,88 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Django specific
+staticfiles/
+media/
+*.sqlite3
+*.sqlite3-journal
 
-.gitignore
+# Environment variables
 .env
+.env.local
+.env.production
+.env.staging
+
+# Development files
+notes.txt
+*.backup
+.DS_Store
+Thumbs.db
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Deployment files (keep scripts but ignore runtime files)
+.elasticbeanstalk/
+.ebextensions/
+.dockerignore
+
+# Logs and databases
+*.log
+drama.log
+logs/
+log/
+
+# User uploads and temporary files
+uploads/
+temp/
+tmp/
+*.tmp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Security and secrets
+.secret
+secrets/
+credentials/
+*.pem
+*.key
+*.crt
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Performance and profiling
+*.prof
+.profile
+
+# Cloud deployment
+.gcloudignore
+.aws/
+.azure/
+
+
+
+# Project specific
+/staticfiles
+/media
+notes.txt

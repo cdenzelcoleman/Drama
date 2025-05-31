@@ -16,9 +16,12 @@ if env_file.exists():
     env.read_env(str(env_file))
 
 # required
-SECRET_KEY = env("SECRET_KEY")
-DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+SECRET_KEY = env("SECRET_KEY", default="django-insecure-change-me-in-production")
+DEBUG = env("DEBUG", default=True)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=['localhost', '127.0.0.1', '0.0.0.0'])
+# Add testserver for Django testing
+if 'testserver' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('testserver')
 
 # ─── INSTALLED APPS ─────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -33,6 +36,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "allauth",
     "allauth.account",
+    "allauth.socialaccount",
 
     # your apps
     "accounts.apps.AccountsConfig",
@@ -42,7 +46,7 @@ INSTALLED_APPS = [
 
 SITE_ID = 1
 
-TMDB_API_KEY = env("TMDB_API_KEY")
+TMDB_API_KEY = env("TMDB_API_KEY", default="")
 
 
 # ─── MIDDLEWARE ─────────────────────────────────────────────────────

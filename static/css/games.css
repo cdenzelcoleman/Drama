@@ -603,65 +603,109 @@ p {
   text-decoration: underline;
 }
 
-/* Mobile Footer Navigation */
+/* Mobile Footer Navigation - Instagram Style */
 .mobile-footer-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--surface-color);
-  border-top: 1px solid var(--border-color);
-  padding: var(--spacing-sm) 0;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(71, 85, 105, 0.3);
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
   z-index: 100;
-  backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-around;
   align-items: center;
+  height: 60px;
+  box-sizing: border-box;
 }
 
 .nav-item-mobile {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-decoration: none;
-  color: var(--text-secondary);
-  padding: var(--spacing-xs);
-  border-radius: var(--border-radius-sm);
-  transition: all 0.2s ease;
+  color: var(--text-muted);
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.15s ease;
   position: relative;
-  min-width: 50px;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
 }
 
-.nav-item-mobile:hover,
+.nav-item-mobile:hover {
+  color: var(--text-secondary);
+  transform: scale(1.05);
+}
+
 .nav-item-mobile.active {
-  color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.1);
+  color: var(--text-primary);
+}
+
+.nav-item-mobile.active .nav-icon {
+  transform: scale(1.1);
+}
+
+/* Filled icons for active state */
+.nav-item-mobile.active svg {
+  fill: currentColor;
+  stroke-width: 0;
+}
+
+.nav-item-mobile:not(.active) svg {
+  fill: none;
 }
 
 .nav-icon {
-  font-size: 1.5rem;
-  margin-bottom: 2px;
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.5;
+  transition: all 0.15s ease;
 }
 
-.nav-label {
-  font-size: 0.75rem;
-  font-weight: 500;
+/* Profile Avatar in Navigation */
+.profile-avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.nav-item-mobile.active .avatar-img {
+  border-color: var(--text-primary);
+}
+
+.nav-item-mobile:hover .avatar-img {
+  transform: scale(1.05);
 }
 
 .notification-badge {
   position: absolute;
   top: -2px;
-  right: 8px;
+  right: -2px;
   background: var(--error-color);
   color: white;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  font-size: 0.7rem;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
+  font-weight: 600;
+  border: 2px solid rgba(15, 23, 42, 0.95);
 }
 
 

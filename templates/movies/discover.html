@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Discover Movies - Drama{% endblock %}
 
 {% block content %}
 <!-- Top Header for Mobile -->
 <div class="top-header">
-    <a href="{% url 'accounts:profile' %}" class="profile-pic-small">
-        👤
+    <a href="{% url 'movies:home' %}" class="profile-pic-small">
+        <img src="{% static 'images/Dramalogo.png' %}" alt="Drama Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
     </a>
     <input type="text" class="header-search" placeholder="Search movies..." id="headerSearch" value="{{ query }}">
     <div class="messenger-icon" onclick="openMessenger()">
