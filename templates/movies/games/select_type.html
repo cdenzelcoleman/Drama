@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Select Game Type - Challenge - Drama{% endblock %}
+
+{% block content %}
+<!-- Top Header -->
+<div class="top-header">
+    <a href="{% url 'movies:challenge_detail' challenge.id %}" class="back-btn" style="color: white; text-decoration: none; font-size: 1.2rem;">←</a>
+    <h1 style="margin: 0; font-size: 1rem; color: white;">Select Game Type</h1>
+    <div></div>
+</div>
+
+<div class="game-selection-container" style="padding: 1rem; max-width: 600px; margin: 0 auto;">
+    <!-- Challenge Header -->
+    <div class="challenge-header" style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="color: white; margin-bottom: 0.5rem;">🎮 Choose Your Game</h2>
+        <p style="color: #94a3b8; margin: 0;">
+            {{ challenge.challenger.username }} vs {{ challenge.challenged.username }}
+        </p>
+    </div>
+
+    {% if user_game_type %}
+        <!-- User has already selected -->
+        <div class="selection-status" style="background: rgba(34, 197, 94, 0.2); border: 2px solid #22c55e; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">✅</div>
+            <h3 style="color: #22c55e; margin-bottom: 0.5rem;">You Selected: {{ user_game_type|title }}</h3>
+            {% if opponent_game_type %}
+                {% if opponent_game_type == user_game_type %}
+                    <p style="color: #22c55e; margin: 0; font-size: 0.875rem;">
+                        🎉 Both players selected {{ user_game_type|title }}! Game is starting...
+                    </p>
+                {% else %}
+                    <p style="color: #f59e0b; margin: 0; font-size: 0.875rem;">
+                        ⚠️ {{ opponent.username }} selected {{ opponent_game_type|title }}. Game types don't match!
+                    </p>
+                {% endif %}
+            {% else %}
+                <p style="color: #94a3b8; margin: 0; font-size: 0.875rem;">
+                    Waiting for {{ opponent.username }} to select...
+                </p>
+            {% endif %}
+        </div>
+
+        {% if opponent_game_type and opponent_game_type != user_game_type %}
+            <!-- Allow re-selection if game types don't match -->
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <p style="color: #f59e0b; margin-bottom: 1rem;">Game types don't match. Select again:</p>
+            </div>
+        {% endif %}
+    {% else %}
+        <!-- User hasn't selected yet -->
+        <div class="instruction" style="background: rgba(59, 130, 246, 0.2); border: 2px solid #3b82f6; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎯</div>
+            <h3 style="color: #3b82f6; margin-bottom: 0.5rem;">Choose Your Game Type</h3>
+            <p style="color: #94a3b8; margin: 0; font-size: 0.875rem;">
+                Select the game you want to play with {{ opponent.username }}
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- Game Type Selection -->
+    {% if not user_game_type or opponent_game_type and opponent_game_type != user_game_type %}
+        <form method="POST" style="display: grid; gap: 1rem;">
+            {% csrf_token %}
+            
+            <!-- Taps Game -->
+            <button type="submit" name="game_type" value="taps" style="background: rgba(245, 158, 11, 0.2); border: 2px solid #f59e0b; border-radius: 12px; padding: 1.5rem; cursor: pointer; transition: all 0.3s;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 3rem;">👆</div>
+                    <div style="text-align: left; flex: 1;">
+                        <h3 style="color: #f59e0b; margin: 0 0 0.5rem 0; font-size: 1.25rem;">Taps Game</h3>
+                        <p style="color: #94a3b8; margin: 0; font-size: 0.875rem;">Click as fast as you can in 5 seconds!</p>
+                    </div>
+                    <div style="color: #f59e0b; font-size: 1.5rem;">→</div>
+                </div>
+            </button>
+            
+            <!-- Shake Game -->
+            <button type="submit" name="game_type" value="shake" style="background: rgba(34, 197, 94, 0.2); border: 2px solid #22c55e; border-radius: 12px; padding: 1.5rem; cursor: pointer; transition: all 0.3s;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 3rem;">📱</div>
+                    <div style="text-align: left; flex: 1;">
+                        <h3 style="color: #22c55e; margin: 0 0 0.5rem 0; font-size: 1.25rem;">Shake Game</h3>
+                        <p style="color: #94a3b8; margin: 0; font-size: 0.875rem;">Shake your device or click rapidly!</p>
+                    </div>
+                    <div style="color: #22c55e; font-size: 1.5rem;">→</div>
+                </div>
+            </button>
+        </form>
+    {% endif %}
+
+    <!-- Opponent Status -->
+    {% if opponent_game_type and user_game_type %}
+        <div class="opponent-status" style="background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1rem; margin-top: 2rem;">
+            <h4 style="color: white; margin: 0 0 0.5rem 0; font-size: 0.875rem;">{{ opponent.username }}'s Selection</h4>
+            <p style="color: #94a3b8; font-size: 0.75rem; margin: 0;">
+                Selected: {{ opponent_game_type|title }}
+            </p>
+        </div>
+    {% elif opponent_game_type %}
+        <div class="opponent-status" style="background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1rem; margin-top: 2rem;">
+            <h4 style="color: white; margin: 0 0 0.5rem 0; font-size: 0.875rem;">{{ opponent.username }}'s Selection</h4>
+            <p style="color: #94a3b8; font-size: 0.75rem; margin: 0;">
+                Selected: {{ opponent_game_type|title }} - Waiting for you to select!
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+button[name="game_type"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+</style>
+{% endblock %}

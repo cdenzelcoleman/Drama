@@ -127,8 +127,15 @@ class Challenge(models.Model):
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('waiting_for_movie', 'Waiting for Movie Selection'),
+        ('waiting_for_game', 'Waiting for Game Selection'),
+        ('ready_to_play', 'Ready to Play'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
+    ]
+    
+    GAME_TYPE_CHOICES = [
+        ('taps', 'Taps'),
+        ('shake', 'Shake'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -136,13 +143,14 @@ class Challenge(models.Model):
     challenged = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_challenges')
     challenger_movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='challenger_selections', null=True, blank=True)
     challenged_movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='challenged_selections', null=True, blank=True)
+    challenger_game_type = models.CharField(max_length=10, choices=GAME_TYPE_CHOICES, null=True, blank=True)
+    challenged_game_type = models.CharField(max_length=10, choices=GAME_TYPE_CHOICES, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     winner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='won_challenges', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ('challenger', 'challenged')
         constraints = [
             models.CheckConstraint(
                 check=~models.Q(challenger=models.F('challenged')),
@@ -158,8 +166,22 @@ class Challenge(models.Model):
         return self.challenger_movie and self.challenged_movie
     
     @property
-    def is_ready_for_game(self):
-        return self.status == 'active' and self.both_movies_selected
+    def both_game_types_selected(self):
+        return self.challenger_game_type and self.challenged_game_type
+    
+    @property
+    def game_types_match(self):
+        return (self.challenger_game_type and self.challenged_game_type and 
+                self.challenger_game_type == self.challenged_game_type)
+    
+    @property
+    def is_ready_for_game_selection(self):
+        return self.status == 'active' and self.both_movies_selected and not self.both_game_types_selected
+    
+    @property
+    def is_ready_to_play(self):
+        return (self.status in ['active', 'ready_to_play'] and self.both_movies_selected and 
+                self.both_game_types_selected and self.game_types_match)
 
 class FriendRequest(models.Model):
     STATUS_CHOICES = [

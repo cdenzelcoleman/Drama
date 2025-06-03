@@ -25,9 +25,9 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body text-center">
-                        <h3>📱 Shake Game</h3>
-                        <p>Shake your device as fast as you can! Mobile devices only.</p>
-                        <a href="{% url 'games:shake_index' %}" class="btn btn-warning">Play Shake</a>
+                        <h3>🔴 Connect Four</h3>
+                        <p>Strategic connection game! Connect four pieces in a row to win.</p>
+                        <a href="{% url 'games:connect_four_index' %}" class="btn btn-primary">Play Connect Four</a>
                     </div>
                 </div>
             </div>
@@ -46,8 +46,8 @@
                                 <div class="mt-2">
                                     {% if game.game_type == 'taps' %}
                                         <a href="{% url 'games:taps_detail' game.id %}" class="btn btn-primary btn-sm">Join Game</a>
-                                    {% elif game.game_type == 'shake' %}
-                                        <a href="{% url 'games:shake_detail' game.id %}" class="btn btn-primary btn-sm">Join Game</a>
+                                    {% elif game.game_type == 'connect_four' %}
+                                        <a href="{% url 'games:connect_four_detail' game.id %}" class="btn btn-primary btn-sm">Join Game</a>
                                     {% endif %}
                                 </div>
                             </div>

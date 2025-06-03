@@ -143,6 +143,7 @@ Thumbs.db
 .elasticbeanstalk/
 .ebextensions/
 .dockerignore
+# docker-compose.yml
 
 # Logs and databases
 *.log

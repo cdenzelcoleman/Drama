@@ -9,7 +9,7 @@ services:
     environment:
       - DEBUG=1
       - SECRET_KEY=dev-secret-key-change-in-production
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - ALLOWED_HOSTS=localhost 127.0.0.1 0.0.0.0 192.168.1.69
 
 volumes:
   static_volume:

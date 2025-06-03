@@ -152,122 +152,344 @@ p {
   font-size: 0.875rem;
 }
 
-/* Buttons */
+/* Minimalist Buttons */
 .btn {
-  border-radius: var(--border-radius-sm);
-  font-weight: 600;
-  padding: 0.75rem 1.5rem;
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 12px 20px;
+  transition: all 0.15s ease;
   border: none;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 .btn-primary {
-  background: var(--primary-color);
-  color: white;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 .btn-primary:hover {
-  background: var(--primary-dark);
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
   transform: translateY(-1px);
 }
 
+.btn-primary:active {
+  transform: translateY(0);
+  background: rgba(99, 102, 241, 0.2);
+}
+
 .btn-secondary {
-  background: var(--card-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background: rgba(148, 163, 184, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid rgba(148, 163, 184, 0.15);
 }
 
 .btn-secondary:hover {
-  background: var(--surface-color);
+  background: rgba(148, 163, 184, 0.1);
   color: var(--text-primary);
+  border-color: rgba(148, 163, 184, 0.25);
 }
 
 .btn-success {
-  background: var(--success-color);
-  color: white;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.btn-success:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .btn-warning {
-  background: var(--warning-color);
-  color: white;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning-color);
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
+.btn-warning:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error-color);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Ghost button style */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: rgba(148, 163, 184, 0.05);
+  color: var(--text-primary);
+  border-color: rgba(148, 163, 184, 0.1);
+}
+
+/* Outline button style */
+.btn-outline-primary {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.btn-outline-primary:hover {
+  background: rgba(99, 102, 241, 0.05);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Button sizes */
 .btn-lg {
-  padding: 1rem 2rem;
-  font-size: 1.125rem;
+  padding: 16px 24px;
+  font-size: 16px;
+  border-radius: 10px;
 }
 
 .btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 6px;
 }
 
-/* Forms */
+.btn-xs {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+/* Icon-only buttons */
+.btn-icon {
+  padding: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.btn-icon.btn-sm {
+  padding: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+/* Loading state */
+.btn:disabled,
+.btn.loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: btn-spin 1s linear infinite;
+}
+
+@keyframes btn-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Minimalist Forms */
 .form-control {
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
+  background: rgba(148, 163, 184, 0.03);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
   color: var(--text-primary);
-  padding: 0.75rem 1rem;
-  transition: all 0.2s ease;
+  padding: 12px 16px;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .form-control:focus {
-  background: var(--surface-color);
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: rgba(148, 163, 184, 0.05);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
   color: var(--text-primary);
+  outline: none;
+}
+
+.form-control:hover {
+  border-color: rgba(148, 163, 184, 0.2);
 }
 
 .form-control::placeholder {
   color: var(--text-muted);
+  opacity: 0.7;
 }
 
 .form-label {
   color: var(--text-primary);
   font-weight: 500;
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 6px;
+  font-size: 14px;
+  display: block;
 }
 
 .form-group {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 20px;
 }
 
-/* Alerts */
+/* Select elements */
+select.form-control {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+  appearance: none;
+}
+
+/* Input groups */
+.input-group {
+  display: flex;
+  align-items: stretch;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.input-group .form-control {
+  border-radius: 0;
+  margin: 0;
+}
+
+.input-group .form-control:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.input-group .form-control:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.input-group .btn {
+  border-radius: 0;
+  border-left: none;
+}
+
+.input-group .btn:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* Minimalist Alerts */
 .alert {
-  border-radius: var(--border-radius-sm);
+  border-radius: 8px;
   border: none;
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+  overflow: hidden;
+}
+
+.alert::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
 }
 
 .alert-success {
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(16, 185, 129, 0.08);
   color: var(--success-color);
-  border-left: 4px solid var(--success-color);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.alert-success::before {
+  background: var(--success-color);
 }
 
 .alert-warning {
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(245, 158, 11, 0.08);
   color: var(--warning-color);
-  border-left: 4px solid var(--warning-color);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.alert-warning::before {
+  background: var(--warning-color);
 }
 
 .alert-danger {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.08);
   color: var(--error-color);
-  border-left: 4px solid var(--error-color);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.alert-danger::before {
+  background: var(--error-color);
 }
 
 .alert-info {
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(99, 102, 241, 0.08);
   color: var(--primary-color);
-  border-left: 4px solid var(--primary-color);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.alert-info::before {
+  background: var(--primary-color);
+}
+
+/* Alert with close button */
+.alert-dismissible {
+  padding-right: 50px;
+}
+
+.alert .btn-close {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: currentColor;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.alert .btn-close:hover {
+  opacity: 1;
 }
 
 /* Movie Cards */

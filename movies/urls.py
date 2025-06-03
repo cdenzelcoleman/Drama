@@ -8,6 +8,7 @@ urlpatterns = [
     path('<int:movie_id>/', views.movie_detail, name='detail'),
     
     # Game URLs (now tied to challenges)
+    path('challenges/<uuid:challenge_id>/games/select-type/', views.select_game_type, name='select_game_type'),
     path('challenges/<uuid:challenge_id>/games/create/', views.create_challenge_game, name='create_challenge_game'),
     path('games/<uuid:game_id>/play/', views.play_game, name='play_game'),
     path('games/<uuid:game_id>/submit/', views.submit_game_result, name='submit_game_result'),

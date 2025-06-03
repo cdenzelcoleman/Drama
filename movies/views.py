@@ -402,7 +402,8 @@ def api_rate_movie(request, movie_id):
 
 # Game Views  
 @login_required
-def create_challenge_game(request, challenge_id):
+def select_game_type(request, challenge_id):
+    """Select game type for challenge"""
     challenge = get_object_or_404(Challenge, id=challenge_id)
     
     # Check if user is part of this challenge
@@ -411,37 +412,58 @@ def create_challenge_game(request, challenge_id):
         return redirect('movies:home')
     
     # Check if both movies are selected
-    if not challenge.is_ready_for_game:
-        messages.error(request, "Both players must select movies before creating a game")
+    if not challenge.both_movies_selected:
+        messages.error(request, "Both players must select movies before choosing game type")
         return redirect('movies:challenge_detail', challenge_id=challenge.id)
     
     if request.method == 'POST':
-        movie_id = request.POST.get('movie_id')
         game_type = request.POST.get('game_type')
         
-        if movie_id and game_type in ['taps', 'shake']:
-            movie = get_object_or_404(Movie, id=movie_id)
+        if game_type in ['taps', 'shake']:
+            # Update the appropriate game type field
+            if request.user == challenge.challenger:
+                challenge.challenger_game_type = game_type
+            else:
+                challenge.challenged_game_type = game_type
             
-            # Verify the movie is one of the challenge movies
-            if movie not in [challenge.challenger_movie, challenge.challenged_movie]:
-                messages.error(request, "You can only create games with movies from this challenge")
+            challenge.save()
+            
+            # Check if both players have selected and game types match
+            if challenge.is_ready_to_play:
+                # Auto-create the game and redirect both players to play
+                # Use the first movie (challenger's) as the game movie
+                game = Game.objects.create(
+                    challenge=challenge,
+                    movie=challenge.challenger_movie,
+                    game_type=game_type,
+                    created_by=request.user
+                )
+                
+                messages.success(request, f"Game ready! Let's play {game.get_game_type_display()}!")
+                return redirect('movies:play_game', game_id=game.id)
+            else:
+                messages.success(request, f"You selected {game_type.title()}. Waiting for your opponent...")
                 return redirect('movies:challenge_detail', challenge_id=challenge.id)
-            
-            game = Game.objects.create(
-                challenge=challenge,
-                movie=movie,
-                game_type=game_type,
-                created_by=request.user
-            )
-            
-            messages.success(request, f"{game.get_game_type_display()} game created for {movie.title}!")
-            return redirect('play_game', game_id=game.id)
+    
+    # Determine if current user has already selected a game type
+    is_challenger = request.user == challenge.challenger
+    user_game_type = challenge.challenger_game_type if is_challenger else challenge.challenged_game_type
+    opponent_game_type = challenge.challenged_game_type if is_challenger else challenge.challenger_game_type
+    opponent = challenge.challenged if is_challenger else challenge.challenger
     
     context = {
         'challenge': challenge,
-        'movies': [challenge.challenger_movie, challenge.challenged_movie]
+        'user_game_type': user_game_type,
+        'opponent_game_type': opponent_game_type,
+        'opponent': opponent,
+        'is_challenger': is_challenger
     }
-    return render(request, 'movies/games/create.html', context)
+    return render(request, 'movies/games/select_type.html', context)
+
+@login_required
+def create_challenge_game(request, challenge_id):
+    """Legacy endpoint - redirect to game type selection"""
+    return redirect('movies:select_game_type', challenge_id=challenge_id)
 
 @login_required
 def play_game(request, game_id):
@@ -814,8 +836,7 @@ def challenge_detail(request, challenge_id):
         'user_movie': user_movie,
         'opponent_movie': opponent_movie,
         'opponent': opponent,
-        'can_select_movie': not user_movie,
-        'ready_for_game': challenge.is_ready_for_game
+        'can_select_movie': not user_movie
     }
     
     return render(request, 'movies/challenge_detail.html', context)

@@ -76,13 +76,35 @@
 
     <!-- Action Section -->
     <div class="action-section" style="text-align: center;">
-        {% if ready_for_game %}
+        {% if challenge.is_ready_to_play %}
+            <!-- Both movies and game types selected, and they match -->
             <div class="ready-status" style="background: rgba(34, 197, 94, 0.2); border: 2px solid #22c55e; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;">
                 <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎮</div>
-                <h3 style="color: #22c55e; margin-bottom: 0.5rem;">Ready to Play!</h3>
-                <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.875rem;">Both players have selected their movies</p>
-                <a href="{% url 'movies:create_challenge_game' challenge.id %}" style="background: #22c55e; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                    Start Game
+                <h3 style="color: #22c55e; margin-bottom: 0.5rem;">Game Ready!</h3>
+                <p style="color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.875rem;">Both players selected {{ challenge.challenger_game_type|title }}</p>
+                <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.875rem;">Click to join the game</p>
+                <a href="{% url 'movies:select_game_type' challenge.id %}" style="background: #22c55e; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    Join Game
+                </a>
+            </div>
+        {% elif challenge.is_ready_for_game_selection %}
+            <!-- Movies selected, now select game type -->
+            <div class="ready-status" style="background: rgba(59, 130, 246, 0.2); border: 2px solid #3b82f6; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎯</div>
+                <h3 style="color: #3b82f6; margin-bottom: 0.5rem;">Choose Game Type!</h3>
+                <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.875rem;">Both movies selected - now pick your game</p>
+                <a href="{% url 'movies:select_game_type' challenge.id %}" style="background: #3b82f6; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    Select Game Type
+                </a>
+            </div>
+        {% elif challenge.both_game_types_selected and not challenge.game_types_match %}
+            <!-- Game types don't match -->
+            <div class="mismatch-status" style="background: rgba(245, 158, 11, 0.2); border: 2px solid #f59e0b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚠️</div>
+                <h3 style="color: #f59e0b; margin-bottom: 0.5rem;">Game Type Mismatch</h3>
+                <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.875rem;">You selected different game types - try again</p>
+                <a href="{% url 'movies:select_game_type' challenge.id %}" style="background: #f59e0b; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    Select Again
                 </a>
             </div>
         {% elif can_select_movie %}

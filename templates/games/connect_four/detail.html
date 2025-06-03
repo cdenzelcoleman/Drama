@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ game.name }} - Connect Four Game{% endblock %}
+
+{% block content %}
+<div class="game-container">
+    <div class="game-header">
+        <h1 class="game-title">🔴 {{ game.name }}</h1>
+        <p class="game-subtitle">{{ game.description|default:"Strategic two-player connection game" }}</p>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="row g-4">
+                <!-- Game Preview -->
+                <div class="col-md-6">
+                    <div class="text-center">
+                        <div style="background: #1e3a8a; border-radius: 20px; padding: 20px; margin: 20px auto; max-width: 300px;">
+                            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; background: #1e40af; padding: 15px; border-radius: 15px;">
+                                <!-- Sample board layout -->
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); border: 3px solid #dc2626;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: 3px solid #f59e0b;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); border: 3px solid #dc2626;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: 3px solid #f59e0b;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: 3px solid #f59e0b;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); border: 3px solid #dc2626;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: 3px solid #f59e0b;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: #f8fafc; border: 3px solid #e2e8f0;"></div>
+                            </div>
+                        </div>
+                        <p class="text-muted mt-3">Strategic gameplay with beautiful visuals</p>
+                    </div>
+                </div>
+                
+                <!-- Game Info -->
+                <div class="col-md-6">
+                    <h3>🎯 How to Play</h3>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">🔴 <strong>Red</strong> and 🟡 <strong>Yellow</strong> take turns</li>
+                        <li class="mb-2">🎯 Click a column to drop your piece</li>
+                        <li class="mb-2">🏆 Connect 4 pieces in a row to win</li>
+                        <li class="mb-2">↗️ Horizontal, vertical, or diagonal</li>
+                        <li class="mb-2">🧠 Use strategy to block your opponent</li>
+                    </ul>
+                    
+                    <h3 class="mt-4">✨ Features</h3>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">⏱️ <strong>Live Timer</strong> - Track your game time</li>
+                        <li class="mb-2">↶ <strong>Undo Move</strong> - Take back your last move</li>
+                        <li class="mb-2">📝 <strong>Move History</strong> - See all moves played</li>
+                        <li class="mb-2">🎊 <strong>Win Animation</strong> - Celebrate victories</li>
+                        <li class="mb-2">📱 <strong>Mobile Friendly</strong> - Play anywhere</li>
+                    </ul>
+                    
+                    {% if user.is_authenticated %}
+                        {% if user_best_result %}
+                            <div class="alert alert-info mt-3">
+                                <h6>🏆 Your Best Result</h6>
+                                <p class="mb-1"><strong>Result:</strong> {{ user_best_result.score|yesno:"Win,Loss" }}</p>
+                                <p class="mb-0"><small class="text-muted">Played {{ user_best_result.created_at|timesince }} ago</small></p>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="text-center mt-4">
+                <a href="{% url 'games:connect_four_play' game.id %}" class="btn btn-primary btn-lg">
+                    🎮 Play Connect Four
+                </a>
+                <a href="{% url 'games:index' %}" class="btn btn-secondary ms-2">
+                    ← Back to Games
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Statistics -->
+    {% if recent_results %}
+    <div class="card mt-4">
+        <div class="card-body">
+            <h4 class="card-title">📊 Recent Games</h4>
+            <div class="row g-3">
+                {% for result in recent_results %}
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">
+                                {% if result.score == 1 %}
+                                    🏆 Victory
+                                {% elif result.score == 0 %}
+                                    🤝 Draw
+                                {% else %}
+                                    📊 Game
+                                {% endif %}
+                            </h5>
+                            <p class="card-text">
+                                <strong>{{ result.user.username }}</strong><br>
+                                <small class="text-muted">{{ result.created_at|timesince }} ago</small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

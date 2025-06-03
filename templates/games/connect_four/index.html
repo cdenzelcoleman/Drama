@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Connect Four Games{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="text-center mb-4">
+        <h1 class="game-title">🔴 Connect Four Games</h1>
+        <p class="game-subtitle">Strategic connection games for all skill levels</p>
+    </div>
+    
+    <div class="row g-4">
+        {% for game in games %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div style="background: #1e3a8a; border-radius: 15px; padding: 15px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #1e40af; padding: 10px; border-radius: 10px;">
+                            <!-- Mini board preview -->
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); border: 2px solid #dc2626;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: 2px solid #f59e0b;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); border: 2px solid #dc2626;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: 2px solid #f59e0b;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0;"></div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="card-title">{{ game.name }}</h3>
+                    <p class="card-text">{{ game.description|default:"Strategic two-player connection game" }}</p>
+                    
+                    {% if user.is_authenticated %}
+                        {% with game.gameresult_set.filter_user_results as user_results %}
+                            {% if user_results %}
+                                <p class="text-muted">
+                                    <small>
+                                        Last played: {{ user_results.first.created_at|timesince }} ago
+                                        <br>Best result: {{ user_results.first.score|yesno:"Win,Loss" }}
+                                    </small>
+                                </p>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'games:connect_four_detail' game.id %}" class="btn btn-secondary flex-fill">
+                            📋 Details
+                        </a>
+                        <a href="{% url 'games:connect_four_play' game.id %}" class="btn btn-primary flex-fill">
+                            🎮 Play
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center p-5">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🔴</div>
+                <h3 class="h5 mb-2">No Connect Four games available</h3>
+                <p class="text-muted">Check back later for new games!</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="{% url 'games:index' %}" class="btn btn-secondary">
+            ← Back to All Games
+        </a>
+    </div>
+</div>
+{% endblock %}
