@@ -89,11 +89,11 @@
         </div>
         
     <div class="d-flex gap-2 justify-content-center mt-4">
-        <a href="{% url 'games:taps_detail' game.id %}" class="btn btn-secondary">
-            ← Back to Game
+        <a href="{% url 'movies:challenge_detail' game.challenge.id %}" class="btn btn-secondary">
+            ← Back to Challenge
         </a>
-        <a href="{% url 'games:index' %}" class="btn btn-success">
-            🎮 All Games
+        <a href="{% url 'movies:home' %}" class="btn btn-success">
+            🏠 Home
         </a>
     </div>
 </div>
@@ -157,7 +157,7 @@ function endGame() {
 }
 
 function submitScore() {
-    fetch('{% url "games:taps_play" game.id %}', {
+    fetch('{% url "movies:submit_game_result" game.id %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

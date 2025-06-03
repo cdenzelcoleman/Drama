@@ -430,17 +430,28 @@ def select_game_type(request, challenge_id):
             
             # Check if both players have selected and game types match
             if challenge.is_ready_to_play:
-                # Auto-create the game and redirect both players to play
-                # Use the first movie (challenger's) as the game movie
-                game = Game.objects.create(
+                # Check if game already exists for this challenge and game type
+                existing_game = Game.objects.filter(
                     challenge=challenge,
-                    movie=challenge.challenger_movie,
                     game_type=game_type,
-                    created_by=request.user
-                )
+                    is_active=True
+                ).first()
                 
-                messages.success(request, f"Game ready! Let's play {game.get_game_type_display()}!")
-                return redirect('movies:play_game', game_id=game.id)
+                if existing_game:
+                    # Game already exists, redirect to it
+                    messages.success(request, f"Game ready! Let's play {existing_game.get_game_type_display()}!")
+                    return redirect('movies:play_game', game_id=existing_game.id)
+                else:
+                    # Create new game
+                    game = Game.objects.create(
+                        challenge=challenge,
+                        movie=challenge.challenger_movie,
+                        game_type=game_type,
+                        created_by=request.user
+                    )
+                    
+                    messages.success(request, f"Game ready! Let's play {game.get_game_type_display()}!")
+                    return redirect('movies:play_game', game_id=game.id)
             else:
                 messages.success(request, f"You selected {game_type.title()}. Waiting for your opponent...")
                 return redirect('movies:challenge_detail', challenge_id=challenge.id)
@@ -450,6 +461,18 @@ def select_game_type(request, challenge_id):
     user_game_type = challenge.challenger_game_type if is_challenger else challenge.challenged_game_type
     opponent_game_type = challenge.challenged_game_type if is_challenger else challenge.challenger_game_type
     opponent = challenge.challenged if is_challenger else challenge.challenger
+    
+    # If both have selected and game types match, redirect to existing game
+    if challenge.is_ready_to_play and user_game_type:
+        existing_game = Game.objects.filter(
+            challenge=challenge,
+            game_type=user_game_type,
+            is_active=True
+        ).first()
+        
+        if existing_game:
+            messages.success(request, f"Game ready! Let's play {existing_game.get_game_type_display()}!")
+            return redirect('movies:play_game', game_id=existing_game.id)
     
     context = {
         'challenge': challenge,
