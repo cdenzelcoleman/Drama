@@ -195,7 +195,6 @@ htmlcov/
 .azure/
 
 
-
 # Project specific
 /staticfiles
 /media

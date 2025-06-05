@@ -29,6 +29,9 @@ urlpatterns = [
     path('games/', include(('games.urls', 'games'), namespace='games')),                                           
 ]
 
-# Serve media files during development
+# Serve static and media files during development  
 if settings.DEBUG:
+    # Serve collected static files from STATIC_ROOT
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # Serve media files during development
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

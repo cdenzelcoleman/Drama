@@ -4,42 +4,227 @@
 
 {% block extra_css %}
 <style>
+/* Old-time movie theater color palette */
+:root {
+    --theater-red: #8B0000;
+    --theater-gold: #DAA520;
+    --theater-cream: #F5F5DC;
+    --theater-burgundy: #722F37;
+    --theater-dark: #2F1B14;
+    --theater-velvet: #4A0E4E;
+}
+
+body {
+    background: linear-gradient(135deg, var(--theater-dark) 0%, var(--theater-burgundy) 100%) !important;
+    min-height: 100vh !important;
+    font-family: 'Georgia', serif !important;
+}
+
+/* Override the global games.css styles */
+.container,
+.main-content {
+    background: transparent !important;
+    color: var(--theater-cream) !important;
+}
+
+.game-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: rgba(245, 245, 220, 0.05);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.game-title {
+    color: var(--theater-gold);
+    text-align: center;
+    font-size: 2.5rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    margin-bottom: 10px;
+}
+
+.game-subtitle {
+    color: var(--theater-cream);
+    text-align: center;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+.alert {
+    background: rgba(218, 165, 32, 0.2) !important;
+    color: var(--theater-cream) !important;
+    border: 1px solid var(--theater-gold) !important;
+    border-radius: 5px !important;
+    padding: 10px !important;
+    margin: 10px 0 !important;
+}
+
+.alert-success {
+    background: rgba(139, 0, 0, 0.2) !important;
+    border-color: var(--theater-red) !important;
+}
+
+.alert-info {
+    background: rgba(74, 14, 78, 0.2) !important;
+    border-color: var(--theater-velvet) !important;
+}
+
+.alert-warning {
+    background: rgba(218, 165, 32, 0.2) !important;
+    border-color: var(--theater-gold) !important;
+}
+
+.card {
+    background: rgba(47, 27, 20, 0.8) !important;
+    border: 2px solid var(--theater-gold) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+}
+
+.card-body {
+    padding: 15px;
+}
+
+.card h5 {
+    color: var(--theater-gold);
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.score-display {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--theater-red);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    font-family: 'Georgia', serif;
+}
+
+.timer-display {
+    font-size: 2rem;
+    color: var(--theater-gold);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    font-family: 'Georgia', serif;
+}
+
+.badge {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+}
+
+.bg-secondary {
+    background-color: var(--theater-burgundy) !important;
+}
+
+.bg-success {
+    background-color: var(--theater-red) !important;
+}
+
+.bg-info {
+    background-color: var(--theater-velvet) !important;
+}
+
 .tap-area {
-    height: 400px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
+    height: 300px;
+    background: radial-gradient(circle, var(--theater-red) 0%, var(--theater-burgundy) 100%);
+    border: 3px solid var(--theater-gold);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     user-select: none;
-    transition: transform 0.1s;
+    transition: all 0.2s ease;
     margin: 20px 0;
+    box-shadow: inset 0 0 20px rgba(218, 165, 32, 0.3);
+}
+
+.tap-area:hover {
+    border-color: var(--theater-cream);
+    box-shadow: inset 0 0 30px rgba(218, 165, 32, 0.5);
 }
 
 .tap-area:active {
-    transform: scale(0.98);
+    transform: scale(0.95);
+    box-shadow: inset 0 0 40px rgba(218, 165, 32, 0.7);
 }
 
 .tap-area.disabled {
-    background: #6c757d;
+    background: linear-gradient(135deg, #444 0%, #666 100%);
     cursor: not-allowed;
+    border-color: #666;
+}
+
+.tap-area h2 {
+    color: var(--theater-cream);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    font-size: 2rem;
+}
+
+.tap-area p {
+    color: var(--theater-gold);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.btn-success {
+    background-color: var(--theater-red) !important;
+    border-color: var(--theater-red) !important;
+    color: var(--theater-cream) !important;
+    font-weight: bold !important;
+    padding: 10px 20px !important;
+    font-size: 1.1rem !important;
+}
+
+.btn-success:hover {
+    background-color: #660000 !important;
+    border-color: #660000 !important;
+    color: var(--theater-cream) !important;
+}
+
+.btn-secondary {
+    background-color: var(--theater-burgundy) !important;
+    border-color: var(--theater-burgundy) !important;
+    color: var(--theater-cream) !important;
+}
+
+.btn-secondary:hover {
+    background-color: #5a1f25 !important;
+    border-color: #5a1f25 !important;
+    color: var(--theater-cream) !important;
+}
+
+.text-muted {
+    color: var(--theater-cream) !important;
+    opacity: 0.7;
 }
 
 .game-info {
     text-align: center;
     margin: 20px 0;
+    padding: 15px;
+    background: rgba(47, 27, 20, 0.6);
+    border-radius: 8px;
+    border: 1px solid var(--theater-gold);
 }
 
-.score-display {
-    font-size: 3rem;
-    font-weight: bold;
-    color: #28a745;
+.game-info > div {
+    color: var(--theater-cream);
+    font-size: 0.9rem;
+    margin-top: 5px;
 }
 
-.timer-display {
-    font-size: 2rem;
-    color: #dc3545;
+#results {
+    background: rgba(47, 27, 20, 0.8);
+    border: 2px solid var(--theater-gold);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    color: var(--theater-cream);
+}
+
+#results h3 {
+    color: var(--theater-gold);
+    margin-bottom: 15px;
 }
 </style>
 {% endblock %}
