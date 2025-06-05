@@ -25,5 +25,5 @@ ENV DJANGO_SETTINGS_MODULE=drama.settings
 # Expose port
 EXPOSE 8000
 
-# Run migrations and start server
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"]
+# Run migrations and start server with ASGI support
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && python -m uvicorn drama.asgi:application --host 0.0.0.0 --port 8000"]

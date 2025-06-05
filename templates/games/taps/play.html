@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Play {{ game.name }} - Taps Game{% endblock %}
+{% block title %}Play Taps Game - {{ game.challenge.challenger.username }} vs {{ game.challenge.challenged.username }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -47,29 +47,70 @@
 {% block content %}
 <div class="game-container">
     <div class="game-header">
-        <h1 class="game-title">🖱️ {{ game.name }}</h1>
-        <p class="game-subtitle">{{ game.description|default:"Tap as fast as you can!" }}</p>
+        <h1 class="game-title">🖱️ Taps Game</h1>
+        <p class="game-subtitle">{{ game.challenge.challenger.username }} vs {{ game.challenge.challenged.username }}</p>
+        <p class="text-muted">Movie: {{ game.movie.title }}</p>
     </div>
-        
-        {% if existing_result %}
-            <div class="alert alert-info">
-                You already played this game! Your previous score: <strong>{{ existing_result.score }}</strong>
-                <br>You can play again to try to beat your score.
-            </div>
-        {% endif %}
-        
-        <div class="game-info">
-            <div class="row">
-                <div class="col-6">
-                    <div class="score-display" id="score">0</div>
-                    <div>Taps</div>
-                </div>
-                <div class="col-6">
-                    <div class="timer-display" id="timer">10</div>
-                    <div>Seconds</div>
+    
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="alert alert-info">
+        Connecting to game room...
+    </div>
+    
+    <!-- Players Status -->
+    <div class="players-status row mb-3">
+        <div class="col-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>{{ game.challenge.challenger.username }}</h5>
+                    <div class="score-display" id="challenger-score">0</div>
+                    <div class="text-muted">taps</div>
+                    <div id="challenger-status" class="mt-2">
+                        <span class="badge bg-secondary">Waiting...</span>
+                    </div>
                 </div>
             </div>
         </div>
+        <div class="col-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>{{ game.challenge.challenged.username }}</h5>
+                    <div class="score-display" id="challenged-score">0</div>
+                    <div class="text-muted">taps</div>
+                    <div id="challenged-status" class="mt-2">
+                        <span class="badge bg-secondary">Waiting...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Status -->
+    <div id="gameStatus" class="text-center mb-3">
+        <div class="alert alert-warning">
+            Waiting for players to be ready...
+        </div>
+    </div>
+    
+    <!-- Countdown -->
+    <div id="countdown" class="text-center mb-3" style="display: none;">
+        <div class="alert alert-info">
+            <h2>Game starts in: <span id="countdownNumber">3</span></h2>
+        </div>
+    </div>
+        
+    <div class="game-info">
+        <div class="row">
+            <div class="col-6">
+                <div class="score-display" id="myScore">0</div>
+                <div>Your Taps</div>
+            </div>
+            <div class="col-6">
+                <div class="timer-display" id="timer">10</div>
+                <div>Seconds</div>
+            </div>
+        </div>
+    </div>
         
         <div class="tap-area" id="tapArea">
             <div class="text-center text-white">
@@ -79,7 +120,7 @@
         </div>
         
         <div class="text-center mt-4">
-            <button id="startBtn" class="btn btn-success btn-lg">Start Game</button>
+            <button id="readyBtn" class="btn btn-success btn-lg">Ready to Play</button>
             <button id="resetBtn" class="btn btn-secondary" style="display: none;">Play Again</button>
         </div>
         
@@ -101,32 +142,193 @@
 
 {% block extra_js %}
 <script>
+// Game state
 let gameActive = false;
-let score = 0;
+let myScore = 0;
 let timeLeft = 10;
 let timer;
-let taps = [];
+let isReady = false;
+let playersReady = [];
+let gameSocket;
+let currentUser = {{ user.id }};
+let challengerId = {{ game.challenge.challenger.id }};
+let challengedId = {{ game.challenge.challenged.id }};
 
-const scoreElement = document.getElementById('score');
+// DOM elements
+const myScoreElement = document.getElementById('myScore');
 const timerElement = document.getElementById('timer');
 const tapArea = document.getElementById('tapArea');
-const startBtn = document.getElementById('startBtn');
+const readyBtn = document.getElementById('readyBtn');
 const resetBtn = document.getElementById('resetBtn');
 const results = document.getElementById('results');
 const finalScore = document.getElementById('finalScore');
+const connectionStatus = document.getElementById('connectionStatus');
+const gameStatus = document.getElementById('gameStatus');
+const countdown = document.getElementById('countdown');
+const countdownNumber = document.getElementById('countdownNumber');
+
+// Initialize WebSocket connection
+function initWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/game/{{ game.id }}/`;
+    
+    gameSocket = new WebSocket(wsUrl);
+    
+    gameSocket.onopen = function(e) {
+        connectionStatus.innerHTML = '<div class="alert alert-success">Connected to game room!</div>';
+        console.log('WebSocket connected');
+    };
+    
+    gameSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        handleWebSocketMessage(data);
+    };
+    
+    gameSocket.onclose = function(e) {
+        connectionStatus.innerHTML = '<div class="alert alert-danger">Disconnected from game room. Trying to reconnect...</div>';
+        console.log('WebSocket closed');
+        // Try to reconnect after 3 seconds
+        setTimeout(initWebSocket, 3000);
+    };
+    
+    gameSocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
+    };
+}
+
+function handleWebSocketMessage(data) {
+    switch(data.type) {
+        case 'game_state':
+            updateGameState(data);
+            break;
+        case 'player_ready':
+            handlePlayerReady(data);
+            break;
+        case 'game_action':
+            handleGameAction(data);
+            break;
+        case 'game_complete':
+            handleGameComplete(data);
+            break;
+        case 'countdown':
+            handleCountdown(data);
+            break;
+        case 'error':
+            console.error('Game error:', data.message);
+            break;
+    }
+}
+
+function updateGameState(data) {
+    // Update player scores if results exist
+    if (data.results) {
+        data.results.forEach(result => {
+            if (result.user_id === challengerId) {
+                document.getElementById('challenger-score').textContent = result.score;
+            } else if (result.user_id === challengedId) {
+                document.getElementById('challenged-score').textContent = result.score;
+            }
+        });
+    }
+}
+
+function handlePlayerReady(data) {
+    if (!playersReady.includes(data.user_id)) {
+        playersReady.push(data.user_id);
+    }
+    
+    // Update status badges
+    if (data.user_id === challengerId) {
+        document.getElementById('challenger-status').innerHTML = '<span class="badge bg-success">Ready!</span>';
+    } else if (data.user_id === challengedId) {
+        document.getElementById('challenged-status').innerHTML = '<span class="badge bg-success">Ready!</span>';
+    }
+    
+    // Check if both players are ready
+    if (playersReady.length >= 2) {
+        startCountdown();
+    } else {
+        gameStatus.innerHTML = '<div class="alert alert-info">Waiting for opponent to be ready...</div>';
+    }
+}
+
+function handleGameAction(data) {
+    // Update opponent's score in real-time
+    if (data.user_id === challengerId) {
+        document.getElementById('challenger-score').textContent = data.score;
+    } else if (data.user_id === challengedId) {
+        document.getElementById('challenged-score').textContent = data.score;
+    }
+}
+
+function handleGameComplete(data) {
+    // Show final results
+    if (data.user_id === challengerId) {
+        document.getElementById('challenger-score').textContent = data.score;
+        document.getElementById('challenger-status').innerHTML = '<span class="badge bg-info">Finished!</span>';
+    } else if (data.user_id === challengedId) {
+        document.getElementById('challenged-score').textContent = data.score;
+        document.getElementById('challenged-status').innerHTML = '<span class="badge bg-info">Finished!</span>';
+    }
+}
+
+function handleCountdown(data) {
+    countdownNumber.textContent = data.count;
+    if (data.count === 0) {
+        startGame();
+    }
+}
+
+function startCountdown() {
+    gameStatus.innerHTML = '<div class="alert alert-success">Both players ready! Starting game...</div>';
+    countdown.style.display = 'block';
+    
+    let count = 3;
+    const countdownInterval = setInterval(() => {
+        countdownNumber.textContent = count;
+        if (count === 0) {
+            clearInterval(countdownInterval);
+            countdown.style.display = 'none';
+            startGame();
+        }
+        count--;
+    }, 1000);
+}
+
+function playerReady() {
+    if (!isReady) {
+        isReady = true;
+        readyBtn.disabled = true;
+        readyBtn.textContent = 'Ready!';
+        readyBtn.classList.remove('btn-success');
+        readyBtn.classList.add('btn-secondary');
+        
+        // Send ready signal
+        gameSocket.send(JSON.stringify({
+            'type': 'player_ready'
+        }));
+        
+        // Update own status
+        if (currentUser === challengerId) {
+            document.getElementById('challenger-status').innerHTML = '<span class="badge bg-success">Ready!</span>';
+        } else if (currentUser === challengedId) {
+            document.getElementById('challenged-status').innerHTML = '<span class="badge bg-success">Ready!</span>';
+        }
+    }
+}
 
 function startGame() {
     gameActive = true;
-    score = 0;
+    myScore = 0;
     timeLeft = 10;
-    taps = [];
     
-    scoreElement.textContent = score;
+    myScoreElement.textContent = myScore;
     timerElement.textContent = timeLeft;
     
-    startBtn.style.display = 'none';
+    readyBtn.style.display = 'none';
     resetBtn.style.display = 'none';
     results.style.display = 'none';
+    gameStatus.innerHTML = '<div class="alert alert-warning">Game in progress!</div>';
     
     tapArea.innerHTML = '<div class="text-center text-white"><h2>TAP NOW!</h2></div>';
     tapArea.classList.remove('disabled');
@@ -148,67 +350,65 @@ function endGame() {
     tapArea.innerHTML = '<div class="text-center text-white"><h2>Time\'s Up!</h2></div>';
     tapArea.classList.add('disabled');
     
-    finalScore.textContent = score;
+    finalScore.textContent = myScore;
     results.style.display = 'block';
     resetBtn.style.display = 'inline-block';
     
-    // Submit score to server
-    submitScore();
-}
-
-function submitScore() {
-    fetch('{% url "movies:submit_game_result" game.id %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({
-            score: score
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Score submitted successfully');
-        }
-    })
-    .catch(error => {
-        console.error('Error submitting score:', error);
-    });
+    // Send completion to other players
+    gameSocket.send(JSON.stringify({
+        'type': 'game_complete',
+        'score': myScore
+    }));
+    
+    gameStatus.innerHTML = '<div class="alert alert-info">Game completed! Waiting for results...</div>';
 }
 
 function resetGame() {
     gameActive = false;
-    score = 0;
+    myScore = 0;
     timeLeft = 10;
+    isReady = false;
+    playersReady = [];
     
-    scoreElement.textContent = score;
+    myScoreElement.textContent = myScore;
     timerElement.textContent = timeLeft;
     
-    tapArea.innerHTML = '<div class="text-center text-white"><h2>Click to Start!</h2><p>Tap as fast as you can for 10 seconds</p></div>';
+    tapArea.innerHTML = '<div class="text-center text-white"><h2>Click Ready to Play!</h2><p>Tap as fast as you can for 10 seconds</p></div>';
     tapArea.classList.remove('disabled');
     
-    startBtn.style.display = 'inline-block';
+    readyBtn.style.display = 'inline-block';
+    readyBtn.disabled = false;
+    readyBtn.textContent = 'Ready to Play';
+    readyBtn.classList.remove('btn-secondary');
+    readyBtn.classList.add('btn-success');
+    
     resetBtn.style.display = 'none';
     results.style.display = 'none';
+    gameStatus.innerHTML = '<div class="alert alert-warning">Click Ready when you want to play!</div>';
+    
+    // Reset status badges
+    document.getElementById('challenger-status').innerHTML = '<span class="badge bg-secondary">Waiting...</span>';
+    document.getElementById('challenged-status').innerHTML = '<span class="badge bg-secondary">Waiting...</span>';
+    document.getElementById('challenger-score').textContent = '0';
+    document.getElementById('challenged-score').textContent = '0';
 }
 
+// Event listeners
 tapArea.addEventListener('click', (e) => {
-    if (!gameActive) {
-        if (startBtn.style.display !== 'none') {
-            startGame();
-        }
-        return;
-    }
+    if (!gameActive) return;
     
-    score++;
-    scoreElement.textContent = score;
-    taps.push({
-        timestamp: Date.now(),
-        x: e.clientX,
-        y: e.clientY
-    });
+    myScore++;
+    myScoreElement.textContent = myScore;
+    
+    // Send real-time action to other players
+    gameSocket.send(JSON.stringify({
+        'type': 'game_action',
+        'data': {
+            'action': 'tap',
+            'score': myScore,
+            'timestamp': Date.now()
+        }
+    }));
     
     // Visual feedback
     tapArea.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
@@ -217,8 +417,13 @@ tapArea.addEventListener('click', (e) => {
     }, 100);
 });
 
-startBtn.addEventListener('click', startGame);
+readyBtn.addEventListener('click', playerReady);
 resetBtn.addEventListener('click', resetGame);
+
+// Initialize WebSocket when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initWebSocket();
+});
 </script>
 {% csrf_token %}
 {% endblock %}

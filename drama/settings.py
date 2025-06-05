@@ -38,6 +38,9 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
 
+    # channels
+    "channels",
+
     # your apps
     "accounts.apps.AccountsConfig",
     "movies.apps.MoviesConfig",
@@ -81,6 +84,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "drama.wsgi.application"
+ASGI_APPLICATION = "drama.asgi.application"
+
+# Channels
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 # ─── DATABASE ───────────────────────────────────────────────────────
 DATABASES = {
