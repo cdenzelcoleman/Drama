@@ -194,8 +194,6 @@ htmlcov/
 .aws/
 .azure/
 
-
-
 # Project specific
 /staticfiles
 /media
