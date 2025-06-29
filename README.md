@@ -47,43 +47,10 @@ A Django-based social movie discovery and gaming platform where users can challe
 - **Notifications**: Real-time challenge updates
 
 
-## 🚀 Deployment
-
-### Heroku Deployment
-
-1. **Install Heroku CLI**
-
-2. **Create Heroku app**
-   ```bash
-   heroku create your-app-name
-   ```
-
-3. **Set environment variables**
-   ```bash
-   heroku config:set SECRET_KEY=your-secret-key
-   heroku config:set DJANGO_SETTINGS_MODULE=drama.settings_prod
-   heroku config:set TMDB_API_KEY=your-api-key
-   heroku config:set ALLOWED_HOSTS=your-app-name.herokuapp.com
-   ```
-
-4. **Deploy**
-   ```bash
-   git push heroku main
-   ```
-
-## 📊 Admin Interface
-
 ## 📄 License
 
 This project is licensed under the MIT License.
 
-## 🆘 Support
-
-For issues and questions:
-1. Check the admin interface for errors
-2. Review Django logs
-3. Ensure TMDB API key is valid
-4. Verify all environment variables are set
 
 ## 🎯 Future Enhancements
 
