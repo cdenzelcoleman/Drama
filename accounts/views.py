@@ -15,9 +15,14 @@ def login_view(request):
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
+        remember_me = request.POST.get("remember_me")
         user = authenticate(request, username=email, password=password)
         if user is not None:
             auth_login(request, user)
+            if remember_me:
+                request.session.set_expiry(1209600)  # 2 weeks
+            else:
+                request.session.set_expiry(0)  # Browser close
             return HttpResponseRedirect('/accounts/profile/')
         else:
             messages.error(request, "Invalid email or password.")

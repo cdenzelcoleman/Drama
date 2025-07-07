@@ -98,6 +98,11 @@ AUTHENTICATION_BACKENDS = (
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
+# Session configuration
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
 
 # ─── VALIDATORS ──────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
