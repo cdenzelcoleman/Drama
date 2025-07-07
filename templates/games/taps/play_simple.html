@@ -1,0 +1,443 @@
+{% extends 'base.html' %}
+
+{% block title %}Play {{ game.name }} - Taps Game{% endblock %}
+
+{% block extra_css %}
+<style>
+.game-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+.game-title {
+    color: #007bff;
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+}
+
+.game-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--card-color, #f8f9fa);
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 1.1rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.tap-area {
+    width: 100%;
+    height: 300px;
+    background: linear-gradient(135deg, #007bff 0%, #6f42c1 100%);
+    border: none;
+    border-radius: 20px;
+    color: white;
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    user-select: none;
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+}
+
+.tap-area:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(0, 123, 255, 0.4);
+}
+
+.tap-area:active {
+    transform: scale(0.98);
+    box-shadow: 0 5px 15px rgba(0, 123, 255, 0.2);
+}
+
+.tap-area.disabled {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.2);
+}
+
+.tap-area.game-over {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.game-controls {
+    margin: 30px 0;
+}
+
+.btn {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 25px;
+    border: none;
+    margin: 0 10px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
+    color: white;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(108, 117, 125, 0.3);
+}
+
+.result-display {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    margin: 20px 0;
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+.result-display h3 {
+    margin-bottom: 15px;
+    font-size: 2rem;
+}
+
+.final-score {
+    font-size: 4rem;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+.game-status {
+    font-size: 1.3rem;
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.status-waiting {
+    background: rgba(255, 193, 7, 0.1);
+    color: #856404;
+    border: 2px solid rgba(255, 193, 7, 0.3);
+}
+
+.status-playing {
+    background: rgba(0, 123, 255, 0.1);
+    color: #004085;
+    border: 2px solid rgba(0, 123, 255, 0.3);
+}
+
+.status-finished {
+    background: rgba(40, 167, 69, 0.1);
+    color: #155724;
+    border: 2px solid rgba(40, 167, 69, 0.3);
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.tap-effect {
+    animation: pulse 0.2s ease;
+}
+
+@media (max-width: 768px) {
+    .tap-area {
+        height: 250px;
+        font-size: 1.5rem;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+    }
+    
+    .game-stats {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="game-container">
+    <h1 class="game-title">🖱️ {{ game.name }}</h1>
+    <p class="text-muted">{{ game.description|default:"Tap as fast as you can!" }}</p>
+    
+    <div class="game-status status-waiting" id="gameStatus">
+        🎮 Click Start to begin the tapping challenge!
+    </div>
+    
+    <div class="game-stats">
+        <div class="stat-card">
+            <div class="stat-number" id="scoreDisplay">0</div>
+            <div class="stat-label">Taps</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="timerDisplay">10</div>
+            <div class="stat-label">Seconds</div>
+        </div>
+    </div>
+    
+    <button class="tap-area" id="tapArea">
+        <div>
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">🖱️</div>
+            <div>Click to Start!</div>
+            <div style="font-size: 1.2rem; margin-top: 10px; opacity: 0.8;">Tap as fast as you can for 10 seconds</div>
+        </div>
+    </button>
+    
+    <div class="game-controls">
+        <button id="startBtn" class="btn btn-primary">🚀 Start Game</button>
+        <button id="resetBtn" class="btn btn-secondary" style="display: none;">🔄 Play Again</button>
+    </div>
+    
+    <div id="results" class="result-display" style="display: none;">
+        <h3>🎉 Game Complete!</h3>
+        <div class="final-score" id="finalScore">0</div>
+        <div>Taps in 10 seconds</div>
+        <div style="margin-top: 15px; font-size: 1.1rem;">
+            Average: <span id="avgTaps">0</span> taps per second
+        </div>
+    </div>
+    
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a href="{% url 'games:taps_detail' game.id %}" class="btn btn-secondary">
+            ← Back to Game
+        </a>
+        <a href="{% url 'games:index' %}" class="btn btn-primary">
+            🎮 All Games
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+class TapsGame {
+    constructor() {
+        this.score = 0;
+        this.timeLeft = 10;
+        this.gameActive = false;
+        this.gameStarted = false;
+        this.timer = null;
+        this.startTime = null;
+        
+        this.initializeElements();
+        this.attachEventListeners();
+    }
+    
+    initializeElements() {
+        this.tapArea = document.getElementById('tapArea');
+        this.scoreDisplay = document.getElementById('scoreDisplay');
+        this.timerDisplay = document.getElementById('timerDisplay');
+        this.startBtn = document.getElementById('startBtn');
+        this.resetBtn = document.getElementById('resetBtn');
+        this.results = document.getElementById('results');
+        this.finalScore = document.getElementById('finalScore');
+        this.avgTaps = document.getElementById('avgTaps');
+        this.gameStatus = document.getElementById('gameStatus');
+    }
+    
+    attachEventListeners() {
+        this.startBtn.addEventListener('click', () => this.startGame());
+        this.resetBtn.addEventListener('click', () => this.resetGame());
+        this.tapArea.addEventListener('click', (e) => this.handleTap(e));
+    }
+    
+    startGame() {
+        this.gameActive = true;
+        this.gameStarted = true;
+        this.score = 0;
+        this.timeLeft = 10;
+        this.startTime = Date.now();
+        
+        this.updateDisplay();
+        this.startBtn.style.display = 'none';
+        this.resetBtn.style.display = 'none';
+        this.results.style.display = 'none';
+        
+        this.tapArea.innerHTML = `
+            <div>
+                <div style="font-size: 3rem; margin-bottom: 10px;">🔥</div>
+                <div>TAP NOW!</div>
+                <div style="font-size: 1.2rem; margin-top: 10px; opacity: 0.8;">Go as fast as you can!</div>
+            </div>
+        `;
+        
+        this.gameStatus.textContent = '🔥 Game in progress - Tap as fast as you can!';
+        this.gameStatus.className = 'game-status status-playing';
+        
+        this.timer = setInterval(() => {
+            this.timeLeft--;
+            this.updateDisplay();
+            
+            if (this.timeLeft <= 0) {
+                this.endGame();
+            }
+        }, 1000);
+    }
+    
+    handleTap(e) {
+        if (!this.gameActive) {
+            if (!this.gameStarted) {
+                this.startGame();
+            }
+            return;
+        }
+        
+        this.score++;
+        this.updateDisplay();
+        
+        // Visual feedback
+        this.tapArea.classList.add('tap-effect');
+        setTimeout(() => {
+            this.tapArea.classList.remove('tap-effect');
+        }, 200);
+        
+        // Update tap area content with current score
+        this.tapArea.innerHTML = `
+            <div>
+                <div style="font-size: 3rem; margin-bottom: 10px;">💥</div>
+                <div>${this.score} TAPS!</div>
+                <div style="font-size: 1.2rem; margin-top: 10px; opacity: 0.8;">Keep going!</div>
+            </div>
+        `;
+    }
+    
+    endGame() {
+        this.gameActive = false;
+        clearInterval(this.timer);
+        
+        const duration = (Date.now() - this.startTime) / 1000;
+        const avgTapsPerSecond = (this.score / duration).toFixed(1);
+        
+        this.tapArea.classList.add('game-over');
+        this.tapArea.innerHTML = `
+            <div>
+                <div style="font-size: 3rem; margin-bottom: 10px;">🏁</div>
+                <div>Time's Up!</div>
+                <div style="font-size: 1.5rem; margin-top: 10px;">${this.score} Taps!</div>
+            </div>
+        `;
+        
+        this.finalScore.textContent = this.score;
+        this.avgTaps.textContent = avgTapsPerSecond;
+        this.results.style.display = 'block';
+        this.resetBtn.style.display = 'inline-block';
+        
+        this.gameStatus.textContent = '🎉 Game completed! Great job!';
+        this.gameStatus.className = 'game-status status-finished';
+        
+        // Submit score to server
+        this.submitScore();
+    }
+    
+    resetGame() {
+        this.gameActive = false;
+        this.gameStarted = false;
+        this.score = 0;
+        this.timeLeft = 10;
+        clearInterval(this.timer);
+        
+        this.updateDisplay();
+        
+        this.tapArea.classList.remove('game-over');
+        this.tapArea.innerHTML = `
+            <div>
+                <div style="font-size: 2.5rem; margin-bottom: 10px;">🖱️</div>
+                <div>Click to Start!</div>
+                <div style="font-size: 1.2rem; margin-top: 10px; opacity: 0.8;">Tap as fast as you can for 10 seconds</div>
+            </div>
+        `;
+        
+        this.startBtn.style.display = 'inline-block';
+        this.resetBtn.style.display = 'none';
+        this.results.style.display = 'none';
+        
+        this.gameStatus.textContent = '🎮 Click Start to begin the tapping challenge!';
+        this.gameStatus.className = 'game-status status-waiting';
+    }
+    
+    updateDisplay() {
+        this.scoreDisplay.textContent = this.score;
+        this.timerDisplay.textContent = this.timeLeft;
+    }
+    
+    submitScore() {
+        const gameResult = {
+            score: this.score,
+            duration: 10,
+            taps_per_second: (this.score / 10).toFixed(2)
+        };
+        
+        fetch('{% url "games:taps_play" game.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                score: this.score,
+                taps: gameResult
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Score submitted successfully');
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting score:', error);
+        });
+    }
+}
+
+// Initialize game when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    new TapsGame();
+});
+</script>
+{% csrf_token %}
+{% endblock %}

@@ -1,4 +1,5 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseRedirect
 from django.contrib.auth import login as auth_login, logout as auth_logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -8,7 +9,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import UserProfile
 from movies.models import Friendship, FriendRequest
-from .forms import EmailSignUpForm, PasswordSetupForm
+from .forms import SignUpForm
 
 def login_view(request):
     if request.method == "POST":
@@ -17,14 +18,14 @@ def login_view(request):
         user = authenticate(request, username=email, password=password)
         if user is not None:
             auth_login(request, user)
-            return redirect('profile')
+            return HttpResponseRedirect('/accounts/profile/')
         else:
             messages.error(request, "Invalid email or password.")
     return render(request, "accounts/login.html")
 
 def logout_view(request):
     auth_logout(request)
-    return redirect("login")
+    return HttpResponseRedirect('/accounts/login/')
 
 @login_required
 def profile_view(request):
@@ -45,50 +46,33 @@ def profile_view(request):
         'pending_requests': pending_requests
     })
 
-def email_signup_view(request):
-    if request.method == "POST":
-        form = EmailSignUpForm(request.POST)
+def signup_view(request):
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
         if form.is_valid():
-            email = form.cleaned_data["email"]
-            # Check if email is already registered
-            if User.objects.filter(email=email).exists():
-                messages.error(request, "Email is already registered.")
-                return redirect("email_signup")
-            # redirect to set a password
-            request.session["signup_email"] = email
-            return redirect("password_setup")
+            user = form.save()
+            # Create user profile if it doesn't exist
+            UserProfile.objects.get_or_create(user=user)
+            # Log the user in automatically
+            auth_login(request, user)
+            messages.success(request, 'Account created successfully!')
+            return HttpResponseRedirect('/accounts/profile/')
     else:
-        form = EmailSignUpForm()
-    return render(request, "accounts/email_signup.html", {"form": form})
-
-def password_setup_view(request):
-    email = request.session.get("signup_email")
-    if not email:
-        return redirect("email_signup")
-    if request.method == "POST":
-        form = PasswordSetupForm(request.POST)
-        if form.is_valid():
-            password = form.cleaned_data["password"]
-            new_user = User.objects.create_user(username=email, email=email, password=password)
-            UserProfile.objects.create(user=new_user)
-            auth_login(request, new_user)
-            del request.session["signup_email"]
-            return redirect("profile")
-    else:
-        form = PasswordSetupForm()
-    return render(request, "accounts/password_setup.html", {"form": form, "email": email})
+        form = SignUpForm()
+    
+    return render(request, 'accounts/signup.html', {'form': form})
 
 @login_required
 def add_friend(request, user_id):
     to_user = get_object_or_404(User, id=user_id)
     if to_user == request.user:
         messages.error(request, "You cannot add yourself as a friend.")
-        return redirect('accounts:profile')
+        return HttpResponseRedirect('/accounts/profile/')
     
     # Check if already friends
     if Friendship.are_friends(request.user, to_user):
         messages.info(request, f"You are already friends with {to_user.username}")
-        return redirect('accounts:profile')
+        return HttpResponseRedirect('/accounts/profile/')
     
     # Create or get existing friend request
     friend_request, created = FriendRequest.objects.get_or_create(
@@ -105,7 +89,7 @@ def add_friend(request, user_id):
         elif friend_request.status == 'declined':
             messages.info(request, "Friend request was previously declined")
     
-    return redirect('accounts:profile')
+    return HttpResponseRedirect('/accounts/profile/')
 
 @login_required
 def accept_friend(request, request_id):
@@ -116,7 +100,7 @@ def accept_friend(request, request_id):
     else:
         messages.error(request, "Unable to accept friend request")
     
-    return redirect('accounts:profile')
+    return HttpResponseRedirect('/accounts/profile/')
 
 @login_required
 def decline_friend(request, request_id):
@@ -127,7 +111,7 @@ def decline_friend(request, request_id):
     else:
         messages.error(request, "Unable to decline friend request")
     
-    return redirect('accounts:profile')
+    return HttpResponseRedirect('/accounts/profile/')
 
 @login_required
 def search_users(request):

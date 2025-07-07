@@ -73,7 +73,37 @@ def game_play(request, game_id, game_type):
 
 @login_required
 def taps_play(request, game_id):
-    return game_play(request, game_id, 'taps')
+    game = get_object_or_404(Game, id=game_id, game_type='taps')
+    participant, _ = GameParticipant.objects.get_or_create(
+        user=request.user,
+        game=game
+    )
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            score = int(data.get('score', 0))
+            taps_data = data.get('taps', {})
+            
+            participant.score = max(participant.score, score)
+            participant.completed_at = timezone.now()
+            participant.save()
+            
+            GameResult.objects.create(
+                game=game,
+                participant=participant,
+                score=score,
+                data={'taps': taps_data, 'timestamp': timezone.now().isoformat()}
+            )
+            
+            return JsonResponse({'success': True, 'score': score})
+        except (json.JSONDecodeError, ValueError):
+            return JsonResponse({'success': False, 'error': 'Invalid data'})
+    
+    return render(request, 'games/taps/play_simple.html', {
+        'game': game,
+        'participant': participant
+    })
 
 @login_required
 def connect_four_index(request):
